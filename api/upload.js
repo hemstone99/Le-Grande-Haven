@@ -1,4 +1,5 @@
 import supabase from './db-client.js';
+import sharp from 'sharp';
 
 const BUCKET = 'menu-images';
 
@@ -48,14 +49,23 @@ export default async function handler(req, res) {
 
     await ensureBucket();
 
-    const buffer = Buffer.from(fileBase64, 'base64');
+    const inputBuffer = Buffer.from(fileBase64, 'base64');
+    const isRaster = /^image\/(jpeg|png|webp)$/i.test(contentType || '');
+    const buffer = isRaster
+      ? await sharp(inputBuffer, { failOn: 'none' })
+          .rotate()
+          .resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 82, effort: 5 })
+          .toBuffer()
+      : inputBuffer;
     const safeName = fileName.replace(/[^a-z0-9.\-_]+/gi, '-').toLowerCase();
-    const path = `${folder || 'misc'}/${Date.now()}-${safeName}`;
+    const outputName = isRaster ? `${safeName.replace(/\.[^.]+$/, '')}.webp` : safeName;
+    const path = `${folder || 'misc'}/${Date.now()}-${outputName}`;
 
     const { error } = await supabase.storage
       .from(BUCKET)
       .upload(path, buffer, {
-        contentType: contentType || 'image/jpeg',
+        contentType: isRaster ? 'image/webp' : (contentType || 'image/jpeg'),
         upsert: true,
         cacheControl: '3600',
       });
