@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { X, Loader2, Check, Calendar, Users, Clock } from 'lucide-react'
 import { useToast } from '../contexts/ToastContext'
 
 export default function ReservationModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { push } = useToast()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const [step, setStep] = useState<'form' | 'success'>('form')
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState({ name: '', phone: '', email: '', reservation_date: today, reservation_time: '19:00', party_size: 2, notes: '' })
@@ -20,7 +20,7 @@ export default function ReservationModal({ open, onClose }: { open: boolean; onC
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Reservation failed')
       setStep('success'); push('Table reservation received', 'success')
-    } catch (err: any) { push(err.message || 'Failed', 'error') } finally { setSubmitting(false) }
+    } catch (err: unknown) { push(err instanceof Error ? err.message : 'Failed', 'error') } finally { setSubmitting(false) }
   }
 
   return (

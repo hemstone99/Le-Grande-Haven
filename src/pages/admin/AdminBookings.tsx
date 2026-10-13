@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { formatDate, KSH } from '../../lib/format'
+import { formatDate } from '../../lib/format'
 import { useToast } from '../../contexts/ToastContext'
 
 type Booking = { id: string; guest_name: string; phone: string; email: string; check_in: string; check_out: string; guests: number; status: string; special_requests: string; room_id: string; room_name?: string; room_price?: number; created_at: string }

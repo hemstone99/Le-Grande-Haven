@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react'
 import { Bed, CalendarCheck, CalendarX, ArrowUp, ArrowDown, Clock, MessageSquare, UtensilsCrossed, Wine, DollarSign, Users } from 'lucide-react'
 import { KSH, formatDate } from '../../lib/format'
 
+type Booking = { id: string; guest_name: string; room_name: string; check_in: string; check_out: string; status: string }
+type Reservation = { id: string; name: string; reservation_date: string; reservation_time: string; party_size: number; status: string }
+
 type Stats = {
   totalRooms: number; availableRooms: number; occupiedRooms: number;
   todayArrivals: number; todayDepartures: number; pendingBookings: number;
   reservations: number; messages: number; foodCount: number; drinkCount: number;
-  revenue: number; recentBookings: any[]; recentReservations: any[]
+  revenue: number; recentBookings: Booking[]; recentReservations: Reservation[]
 }
 
 export default function Dashboard() {
@@ -48,7 +51,7 @@ export default function Dashboard() {
         <div className="p-6 rounded-3xl bg-white border border-forest/5">
           <div className="flex items-center justify-between"><h2 className="font-display text-xl text-forest">Recent Room Bookings</h2><a href="/admin/bookings" className="text-xs text-clay">View all</a></div>
           <div className="mt-4 divide-y divide-forest/5">
-            {(s?.recentBookings || []).slice(0, 6).map((b: any) => (
+            {(s?.recentBookings || []).slice(0, 6).map((b: Booking) => (
               <div key={b.id} className="py-3 flex items-center justify-between">
                 <div><div className="text-sm font-semibold text-forest">{b.guest_name}</div><div className="text-xs text-earth">{b.room_name} · {formatDate(b.check_in)} → {formatDate(b.check_out)}</div></div>
                 <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase tracking-widest font-semibold ${b.status === 'confirmed' ? 'bg-forest/10 text-forest' : b.status === 'pending' ? 'bg-clay/10 text-clay' : b.status === 'checked_in' ? 'bg-sand/40 text-forest-deep' : 'bg-earth/10 text-earth'}`}>{b.status}</span>
@@ -61,7 +64,7 @@ export default function Dashboard() {
         <div className="p-6 rounded-3xl bg-white border border-forest/5">
           <div className="flex items-center justify-between"><h2 className="font-display text-xl text-forest">Recent Restaurant Reservations</h2><a href="/admin/reservations" className="text-xs text-clay">View all</a></div>
           <div className="mt-4 divide-y divide-forest/5">
-            {(s?.recentReservations || []).slice(0, 6).map((r: any) => (
+            {(s?.recentReservations || []).slice(0, 6).map((r: Reservation) => (
               <div key={r.id} className="py-3 flex items-center justify-between">
                 <div><div className="text-sm font-semibold text-forest">{r.name}</div><div className="text-xs text-earth">{formatDate(r.reservation_date)} at {r.reservation_time} · {r.party_size} guests</div></div>
                 <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase tracking-widest font-semibold ${r.status === 'confirmed' ? 'bg-forest/10 text-forest' : 'bg-clay/10 text-clay'}`}>{r.status}</span>

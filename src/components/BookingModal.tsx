@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { X, Loader2, Check, Calendar, Users, Smartphone, Landmark, Banknote, ShieldCheck } from 'lucide-react'
 import { KSH, daysBetween } from '../lib/format'
 import { useToast } from '../contexts/ToastContext'
@@ -8,8 +8,8 @@ type Method = 'mpesa' | 'bank' | 'cash'
 
 export default function BookingModal({ open, onClose, rooms, preselectedRoomId }: { open: boolean; onClose: () => void; rooms: Room[]; preselectedRoomId?: string }) {
   const { push } = useToast()
-  const today = new Date().toISOString().slice(0, 10)
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const tomorrow = useMemo(() => new Date(Date.now() + 86400000).toISOString().slice(0, 10), [])
 
   const [step, setStep] = useState<'form' | 'payment' | 'success'>('form')
   const [submitting, setSubmitting] = useState(false)
@@ -26,7 +26,9 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
     if (open) {
       setStep('form')
       setForm(f => ({ ...f, room_id: preselectedRoomId || rooms[0]?.id || f.room_id }))
-      setPayRef(''); setConfirmed(false); setMethod('mpesa')
+      setPayRef('')
+      setConfirmed(false)
+      setMethod('mpesa')
     }
   }, [open, preselectedRoomId, rooms])
 

@@ -5,7 +5,6 @@ const key = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || (import.meta.e
 
 if (!url || !key) {
   // Helpful console error for local dev — shows up in the browser dev-tools & terminal
-  // eslint-disable-next-line no-console
   console.error(
     '[Le Grande Haven] Supabase env vars missing.\n' +
     'Create a .env file at the project root (copy .env.example) and set:\n' +
