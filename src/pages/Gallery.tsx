@@ -4,6 +4,7 @@ import { X, ChevronLeft, ChevronRight, Expand, Images, Trees, BedDouble, Utensil
 import { useBooking } from '../components/BookingContext'
 import { BrandTile } from '../components/BrandIcons'
 import { SOCIALS } from '../lib/contact'
+import HeroWave from '../components/HeroWave'
 
 type Category = 'grounds' | 'rooms' | 'dining' | 'bar' | 'events'
 type Photo = { url: string; caption: string; category: Category }
@@ -98,7 +99,7 @@ export default function Gallery() {
   return (
     <main className="bg-cream-50 min-h-screen">
       {/* HERO — a mosaic of the property behind the title */}
-      <section className="relative pt-40 pb-20 bg-forest-deep text-cream overflow-hidden">
+      <section className="relative pt-40 pb-32 md:pb-40 bg-forest-deep text-cream overflow-hidden">
         <div className="absolute inset-0 grid grid-cols-4 md:grid-cols-6 gap-1 opacity-30" aria-hidden="true">
           {LIBRARY.slice(0, 12).map(p => <img key={p.url} src={p.url} alt="" decoding="async" className="w-full h-full object-cover min-h-40" />)}
         </div>
@@ -112,6 +113,7 @@ export default function Gallery() {
             <span className="px-4 py-2 rounded-full bg-cream/10 border border-cream/15">Kanana, Shimoni</span>
           </div>
         </div>
+        <HeroWave fill="#fbf8f2" />
       </section>
 
       {/* FILTERS — stick under the navbar while browsing */}

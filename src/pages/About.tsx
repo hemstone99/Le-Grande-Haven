@@ -1,18 +1,20 @@
 import { Leaf, Trees, UtensilsCrossed, Bed, MapPin, HeartHandshake, Phone, Mail, MessageCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useBooking } from '../components/BookingContext'
+import HeroWave from '../components/HeroWave'
 
 export default function About() {
   const { openBooking, openReservation } = useBooking()
   return (
     <main className="bg-cream-50 min-h-screen">
-      <section className="relative pt-40 pb-24 bg-forest text-cream overflow-hidden">
+      <section className="relative pt-40 pb-32 md:pb-40 bg-forest text-cream overflow-hidden">
         <img src="/hero/hero-lush.jpg" className="absolute inset-0 w-full h-full object-cover opacity-35" style={{ objectPosition: 'center 60%' }} alt="Le Grande Haven Kanana gardens" />
         <div className="relative max-w-4xl mx-auto px-6 text-center">
           <div className="text-xs uppercase tracking-[0.4em] text-sand">Our Story</div>
           <h1 className="font-display text-5xl sm:text-6xl md:text-8xl mt-4 leading-tight">Rooted in Kwale.<br /><em className="text-sand">Built on hospitality.</em></h1>
           <p className="text-cream/80 mt-8 max-w-2xl mx-auto text-lg">Le Grande Haven Kanana, Shimoni is a small, family-hearted restaurant and accommodation destination on the south Kenyan coast. We opened our doors to share the coast we love, the food we grew up on and a slower, warmer way to stay.</p>
         </div>
+        <HeroWave fill="#fbf8f2" />
       </section>
 
       <section className="py-24">

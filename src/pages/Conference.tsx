@@ -3,6 +3,7 @@ import { Phone, Users, Wifi, Coffee, Utensils, Projector, Trees, Music, ArrowRig
 import { useToast } from '../contexts/ToastContext'
 import { BrandTile, IconTile, TILE_BG } from '../components/BrandIcons'
 import { whatsappLink, PHONE_DISPLAY, PHONE_TEL } from '../lib/contact'
+import HeroWave from '../components/HeroWave'
 
 const EVENT_TYPES = [
   { Icon: Briefcase, bg: TILE_BG.forest, title: 'Corporate meetings', desc: 'Board meetings, strategy sessions and client presentations in a calm setting.' },
@@ -67,7 +68,7 @@ export default function Conference() {
   return (
     <main className="bg-cream-50 min-h-screen">
       {/* HERO */}
-      <section className="relative min-h-[88vh] flex items-end pt-36 pb-16 bg-forest-deep text-cream overflow-hidden">
+      <section className="relative min-h-[88vh] flex items-end pt-36 pb-32 md:pb-40 bg-forest-deep text-cream overflow-hidden">
         <img src="/conference/banquet.jpg" alt="" className="absolute inset-0 w-full h-full object-cover animate-zoom-slow" />
         <div className="absolute inset-0 bg-linear-to-t from-forest-deep via-forest-deep/70 to-forest-deep/30" />
         <div className="relative max-w-7xl mx-auto px-6 w-full">
@@ -87,6 +88,7 @@ export default function Conference() {
             ))}
           </div>
         </div>
+        <HeroWave fill="#fbf8f2" />
       </section>
 
       {/* EVENT TYPES */}

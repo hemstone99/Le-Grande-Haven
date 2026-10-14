@@ -8,6 +8,7 @@ import { CardSkeleton } from '../components/Skeleton'
 import { BrandTile, IconTile, TILE_BG } from '../components/BrandIcons'
 import { fetchRoomsWithFallback } from '../lib/roomsData'
 import { whatsappLink, PHONE_TEL, PHONE_DISPLAY } from '../lib/contact'
+import HeroWave from '../components/HeroWave'
 
 type Room = {
   id: string; slug: string; name: string; short_description: string; room_type: string; guests: number
@@ -114,7 +115,7 @@ export default function RoomsPage() {
   return (
     <main className="bg-cream-50 min-h-screen">
       {/* HERO */}
-      <section className="relative pt-36 pb-20 bg-forest-deep text-cream overflow-hidden">
+      <section className="relative pt-36 pb-32 md:pb-40 bg-forest-deep text-cream overflow-hidden">
         <img src="/hero/hero-accommodation.jpg" alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm scale-110" />
         <div className="absolute inset-0 bg-linear-to-r from-forest-deep via-forest-deep/90 to-forest-deep/60" />
         <div className="relative max-w-7xl mx-auto px-6 grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
@@ -140,6 +141,7 @@ export default function RoomsPage() {
             ))}
           </div>
         </div>
+        <HeroWave fill="#fbf8f2" />
       </section>
 
       {/* STICKY FILTERS */}

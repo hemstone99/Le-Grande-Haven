@@ -4,6 +4,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useBooking } from '../components/BookingContext'
 import { BrandTile, IconTile, TILE_BG } from '../components/BrandIcons'
 import { PHONE_DISPLAY, PHONE_TEL, EMAIL, whatsappLink, MAPS_DIRECTIONS, MAPS_EMBED, SOCIALS, isRestaurantOpen } from '../lib/contact'
+import HeroWave from '../components/HeroWave'
 
 const TOPICS = [
   { key: 'Room booking', Icon: BedDouble },
@@ -84,6 +85,7 @@ export default function Contact() {
             ))}
           </div>
         </div>
+        <HeroWave fill="#fbf8f2" />
       </section>
 
       {/* CHANNELS — overlap the hero */}

@@ -5,6 +5,7 @@ import { useBooking } from './BookingContext'
 import { CardSkeleton } from './Skeleton'
 import { BrandTile } from './BrandIcons'
 import { whatsappLink } from '../lib/contact'
+import HeroWave from './HeroWave'
 
 export type MenuItem = { id: string; name: string; description: string; price: number; image_url: string; category: string; available: boolean; featured: boolean }
 
@@ -114,7 +115,7 @@ export default function MenuPage({ config: c }: { config: MenuConfig }) {
   return (
     <main className={`${isDrinks ? 'bg-[#f3ede3]' : 'bg-cream-50'} min-h-screen`}>
       {/* HERO */}
-      <section className={`relative pt-36 pb-20 text-cream overflow-hidden ${isDrinks ? 'bg-[#1a1512]' : 'bg-forest-deep'}`}>
+      <section className={`relative pt-36 pb-32 md:pb-40 text-cream overflow-hidden ${isDrinks ? 'bg-[#1a1512]' : 'bg-forest-deep'}`}>
         <img src={c.heroImages[0]} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm scale-110" />
         <div className={`absolute inset-0 ${isDrinks ? 'bg-linear-to-r from-[#1a1512] via-[#1a1512]/90 to-[#1a1512]/60' : 'bg-linear-to-r from-forest-deep via-forest-deep/90 to-forest-deep/60'}`} />
         <div className="relative max-w-7xl mx-auto px-6 grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
@@ -142,6 +143,7 @@ export default function MenuPage({ config: c }: { config: MenuConfig }) {
             ))}
           </div>
         </div>
+        <HeroWave fill={isDrinks ? '#f3ede3' : '#fbf8f2'} />
       </section>
 
       {/* STICKY CATEGORY BAR + SEARCH */}
