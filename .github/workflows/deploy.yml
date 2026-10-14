@@ -33,7 +33,7 @@ jobs:
           echo "Dist files count: $(find deploy-package/dist -type f | wc -l)"
 
       - name: Deploy via SFTP
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.0
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
           host: ${{ secrets.SFTP_HOST }}
           port: ${{ secrets.SFTP_PORT }}
