@@ -31,3 +31,13 @@ dist-ssr
 .env.*.local
 !.env.example
 vercel*
+# Hosting credentials and migrated production data — never commit
+cpanel.txt
+db/seed.json
+uploads/
+
+# Print artwork: keep the PDFs/JPGs/SVG, skip large duplicates and generator files
+print/**/*.png
+!print/**/preview-front-face.png
+print/**/*.html
+print/**/build-*.mjs

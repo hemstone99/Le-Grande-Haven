@@ -1,30 +1,22 @@
-import supabase from './db-client.js';
-
-const cors = (res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-};
+import { query, queryOne, uuid } from './db.js';
 
 export default async function handler(req, res) {
-  cors(res);
-  if (req.method === 'OPTIONS') return res.status(204).end();
   try {
     if (req.method === 'GET') {
-      const { data, error } = await supabase.from('gallery').select('*').order('sort_order', { ascending: true });
-      if (error) throw error;
-      return res.status(200).json(data);
+      return res.status(200).json(await query('SELECT * FROM gallery ORDER BY sort_order ASC'));
     }
     if (req.method === 'POST') {
       const b = req.body || {};
-      const { data, error } = await supabase.from('gallery').insert({ url: b.url, caption: b.caption || null, category: b.category || 'general', sort_order: b.sort_order || 0 }).select().single();
-      if (error) throw error;
-      return res.status(201).json(data);
+      if (!b.url) return res.status(400).json({ error: 'url required' });
+      const id = uuid();
+      await query('INSERT INTO gallery (id, url, caption, category, sort_order) VALUES (?, ?, ?, ?, ?)',
+        [id, b.url, b.caption || null, b.category || 'general', b.sort_order || 0]);
+      return res.status(201).json(await queryOne('SELECT * FROM gallery WHERE id = ?', [id]));
     }
     if (req.method === 'DELETE') {
       const { id } = req.body || {};
-      const { error } = await supabase.from('gallery').delete().eq('id', id);
-      if (error) throw error;
+      if (!id) return res.status(400).json({ error: 'id required' });
+      await query('DELETE FROM gallery WHERE id = ?', [id]);
       return res.status(200).json({ ok: true });
     }
     return res.status(405).json({ error: 'Method not allowed' });

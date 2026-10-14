@@ -61,7 +61,7 @@ export default function RoomDetail() {
             {images.length > 1 && (
               <div className="grid grid-cols-4 gap-3 mt-3">
                 {images.map((img, i) => (
-                  <button key={i} onClick={() => setActive(i)} className={`h-24 rounded-2xl overflow-hidden border-2 transition ${i === active ? 'border-forest' : 'border-transparent opacity-70 hover:opacity-100'}`}><img src={img.url} className="w-full h-full object-cover" alt="" /></button>
+                  <button key={i} onClick={() => setActive(i)} className={`h-24 rounded-2xl overflow-hidden border-2 transition ${i === active ? 'border-forest' : 'border-transparent opacity-70 hover:opacity-100'}`}><img loading="lazy" decoding="async" src={img.url} className="w-full h-full object-cover" alt="" /></button>
                 ))}
               </div>
             )}
@@ -83,8 +83,8 @@ export default function RoomDetail() {
             </div>
             <button onClick={() => openBooking(room.id)} className="mt-6 w-full px-7 py-4 rounded-full bg-forest text-cream font-semibold hover:bg-forest-deep transition text-lg">Book This Room</button>
             <div className="grid grid-cols-3 gap-2 mt-3">
-              <a href="tel:0182219969" className="px-3 py-3 rounded-full border border-forest/20 text-forest text-xs font-semibold hover:bg-forest/5 flex items-center justify-center gap-2"><Phone className="w-4 h-4" /> Call</a>
-              <a href="https://wa.me/0182219969" className="px-3 py-3 rounded-full border border-forest/20 text-forest text-xs font-semibold hover:bg-forest/5 flex items-center justify-center gap-2"><MessageCircle className="w-4 h-4" /> WhatsApp</a>
+              <a href="tel:+254182219969" className="px-3 py-3 rounded-full border border-forest/20 text-forest text-xs font-semibold hover:bg-forest/5 flex items-center justify-center gap-2"><Phone className="w-4 h-4" /> Call</a>
+              <a href="https://wa.me/254182219969" className="px-3 py-3 rounded-full border border-forest/20 text-forest text-xs font-semibold hover:bg-forest/5 flex items-center justify-center gap-2"><MessageCircle className="w-4 h-4" /> WhatsApp</a>
               <Link to="/contact" className="px-3 py-3 rounded-full border border-forest/20 text-forest text-xs font-semibold hover:bg-forest/5 flex items-center justify-center gap-2"><MapPin className="w-4 h-4" /> Visit</Link>
             </div>
           </div>
@@ -118,7 +118,7 @@ export default function RoomDetail() {
             <div className="grid md:grid-cols-3 gap-6 mt-8">
               {others.map(o => (
                 <Link key={o.id} to={`/rooms/${o.slug}`} className="group rounded-3xl overflow-hidden bg-white border border-forest/5 lift">
-                  <div className="h-56 img-zoom"><img src={o.images?.[0]?.url || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80'} className="w-full h-full object-cover" alt={o.name} /></div>
+                  <div className="h-56 img-zoom"><img loading="lazy" decoding="async" src={o.images?.[0]?.url || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80'} className="w-full h-full object-cover" alt={o.name} /></div>
                   <div className="p-5"><div className="text-[10px] uppercase tracking-[0.3em] text-clay">{o.room_type}</div><div className="flex items-baseline justify-between mt-1"><h3 className="font-display text-2xl text-forest">{o.name}</h3><span className="font-display text-forest">{KSH(o.price_per_night)}</span></div><p className="text-sm text-earth mt-2 line-clamp-2">{o.short_description}</p></div>
                 </Link>
               ))}

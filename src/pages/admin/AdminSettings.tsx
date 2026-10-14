@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Loader2, KeyRound, ShieldCheck, Mail } from 'lucide-react'
-import supabase from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 
@@ -20,20 +19,18 @@ export default function AdminSettings() {
     if (!current) { push('Enter your current password', 'error'); return }
     if (pw1 !== pw2) { push('New passwords do not match', 'error'); return }
     if (!strong(pw1)) { push('Password must be 8+ chars with upper, lower and a number', 'error'); return }
-    if (!user?.email) { push('No user session', 'error'); return }
+    if (!user) { push('No user session', 'error'); return }
 
     setBusy(true)
-    // Verify current password by re-signing in
-    const { error: signErr } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password: current,
-    })
-    if (signErr) { push('Current password is incorrect', 'error'); setBusy(false); return }
-
-    // Change to the new one
-    const { error } = await supabase.auth.updateUser({ password: pw1 })
+    // The server verifies the current password before changing it
+    const res = await fetch('/api/auth/password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current, next: pw1 }),
+    }).catch(() => null)
     setBusy(false)
-    if (error) { push(error.message, 'error'); return }
+    if (!res) { push('Could not reach the server', 'error'); return }
+    if (!res.ok) { push((await res.json().catch(() => ({}))).error || 'Password change failed', 'error'); return }
 
     setCurrent(''); setPw1(''); setPw2('')
     push('Password updated. Please use the new password on next sign-in.', 'success')

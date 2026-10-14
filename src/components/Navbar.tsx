@@ -6,7 +6,8 @@ export default function Navbar({ onBookRoom, onReserveTable }: { onBookRoom: () 
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const loc = useLocation()
-  const onDark = loc.pathname === '/' && !scrolled
+  // Every public page opens on a dark hero except an individual room's page
+  const onDark = !scrolled && !loc.pathname.startsWith('/rooms/')
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -21,6 +22,7 @@ export default function Navbar({ onBookRoom, onReserveTable }: { onBookRoom: () 
     { to: '/drinks', label: 'Drinks' },
     { to: '/rooms', label: 'Rooms' },
     { to: '/conference', label: 'Conference' },
+    { to: '/gallery', label: 'Gallery' },
     { to: '/about', label: 'About' },
     { to: '/contact', label: 'Contact' },
   ]

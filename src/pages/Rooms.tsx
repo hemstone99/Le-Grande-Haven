@@ -79,7 +79,7 @@ export default function RoomsPage() {
               {visible.map(r => (
                 <article key={r.id} className="group rounded-3xl overflow-hidden bg-white border border-forest/5 lift flex flex-col">
                   <Link to={`/rooms/${r.slug}`} className="block h-72 img-zoom relative">
-                    <img src={r.images?.[0]?.url || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1200&q=80'} alt={r.name} className="w-full h-full object-cover" />
+                    <img loading="lazy" decoding="async" src={r.images?.[0]?.url || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1200&q=80'} alt={r.name} className="w-full h-full object-cover" />
                     <div className="absolute top-4 left-4 flex gap-2">
                       {r.featured && <span className="px-3 py-1 rounded-full bg-sand text-forest-deep text-[10px] uppercase tracking-widest font-semibold">Featured</span>}
                       {r.available ? <span className="px-3 py-1 rounded-full bg-forest text-cream text-[10px] uppercase tracking-widest">Available</span> : <span className="px-3 py-1 rounded-full bg-clay text-cream text-[10px] uppercase tracking-widest">Booked</span>}

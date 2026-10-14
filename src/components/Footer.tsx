@@ -18,14 +18,14 @@ export default function Footer() {
             <a href="https://www.instagram.com/legrandehaven?stkn=ZnZ6ZTZjMTIwNWZp&utm_source=ig_contact_invite" target="_blank" rel="noreferrer" aria-label="Instagram" className="w-9 h-9 rounded-full grid place-items-center bg-cream/10 hover:bg-sand hover:text-forest-deep transition"><Instagram className="w-4 h-4" /></a>
             <a href="https://www.tiktok.com/@legrazzt157?_r=1&_t=ZS-99az9KxQn0n" target="_blank" rel="noreferrer" aria-label="TikTok" className="w-9 h-9 rounded-full grid place-items-center bg-cream/10 hover:bg-sand hover:text-forest-deep transition"><Music2 className="w-4 h-4" /></a>
             <a href="https://www.facebook.com/share/18zG2jozwq/?mibextid=wwXIfr" target="_blank" rel="noreferrer" aria-label="Facebook" className="w-9 h-9 rounded-full grid place-items-center bg-cream/10 hover:bg-sand hover:text-forest-deep transition"><Facebook className="w-4 h-4" /></a>
-            <a href="https://wa.me/0182219969" target="_blank" rel="noreferrer" aria-label="WhatsApp" className="w-9 h-9 rounded-full grid place-items-center bg-cream/10 hover:bg-sand hover:text-forest-deep transition"><MessageCircle className="w-4 h-4" /></a>
+            <a href="https://wa.me/254182219969" target="_blank" rel="noreferrer" aria-label="WhatsApp" className="w-9 h-9 rounded-full grid place-items-center bg-cream/10 hover:bg-sand hover:text-forest-deep transition"><MessageCircle className="w-4 h-4" /></a>
           </div>
         </div>
 
         <div>
           <div className="font-display text-cream mb-4">Explore</div>
           <ul className="space-y-2 text-sm">
-            {[['/', 'Home'], ['/food', 'Food'], ['/drinks', 'Drinks'], ['/rooms', 'Rooms'], ['/conference', 'Conference'], ['/about', 'About'], ['/contact', 'Contact']].map(([to, label]) => (
+            {[['/', 'Home'], ['/food', 'Food'], ['/drinks', 'Drinks'], ['/rooms', 'Rooms'], ['/conference', 'Conference'], ['/gallery', 'Gallery'], ['/about', 'About'], ['/contact', 'Contact']].map(([to, label]) => (
               <li key={to}><Link to={to} className="hover:text-sand transition">{label}</Link></li>
             ))}
           </ul>

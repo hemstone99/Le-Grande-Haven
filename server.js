@@ -1,48 +1,44 @@
 /**
- * Le Grande Haven — Express API server
+ * Le Grande Haven — Express server (API + built frontend)
  *
- * A thin router that mounts every serverless handler in `api/*.js`
- * as a real Express route. Runs identically to the Vercel deployment
- * (same handlers, same request/response shape) but can be hosted on
- * Render, Railway, Fly, a plain VPS, or run locally with `npm run server`.
+ * Mounts every handler in `api/*.js` as an Express route, backed by MySQL.
+ * Runs under cPanel's "Setup Node.js App" (Phusion Passenger) in production
+ * and with `npm run server` locally.
  *
- * Routes exposed:
- *   GET  /health                     – liveness probe
- *   ANY  /api/rooms                  → api/rooms.js
- *   ANY  /api/room-images            → api/rooms.js  (alias)
- *   ANY  /api/bookings               → api/bookings.js
- *   ANY  /api/reservations           → api/reservations.js
- *   ANY  /api/food                   → api/food.js
- *   ANY  /api/drinks                 → api/drinks.js
- *   ANY  /api/gallery                → api/gallery.js
- *   ANY  /api/messages               → api/messages.js
- *   ANY  /api/staff                  → api/staff.js
- *   ANY  /api/stats                  → api/stats.js
- *   ANY  /api/upload                 → api/upload.js
- *   ANY  /api/db-wake                → api/db-wake.js
+ * Routes exposed (🔒 = admin session required):
+ *   GET  /health                     – liveness + database probe
+ *   ANY  /api/auth/:action           → api/auth.js     (login, logout, me, password)
+ *   ANY  /api/rooms                  → api/rooms.js        GET public, 🔒 writes
+ *   ANY  /api/food                   → api/food.js         GET public, 🔒 writes
+ *   ANY  /api/drinks                 → api/drinks.js       GET public, 🔒 writes
+ *   ANY  /api/gallery                → api/gallery.js      GET public, 🔒 writes
+ *   ANY  /api/bookings               → api/bookings.js     POST public, 🔒 rest
+ *   ANY  /api/reservations           → api/reservations.js POST public, 🔒 rest
+ *   ANY  /api/messages               → api/messages.js     POST public, 🔒 rest
+ *   ANY  /api/staff                  → api/staff.js        🔒
+ *   ANY  /api/stats                  → api/stats.js        🔒
+ *   ANY  /api/upload                 → api/upload.js       🔒
+ *   GET  /uploads/*                  – admin-uploaded images
  *
  * Also serves the built frontend from `dist/` (SPA fallback to index.html).
  *
  * Usage:
  *   npm run build      # build the React app
- *   npm run server     # start the API server (default port 3000)
- *   # or
- *   PORT=8080 node server.js
+ *   npm run server     # start the server (default port 3000)
  */
 
 import express from 'express'
-import cors from 'cors'
 import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-// Load .env into process.env when running locally (no-op in production)
+// Load .env into process.env when present (cPanel sets real env vars instead)
 try {
-  const envPath = path.join(process.cwd(), '.env')
+  const envPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '.env')
   if (fs.existsSync(envPath)) {
     const raw = fs.readFileSync(envPath, 'utf8')
-    for (const line of raw.split('\n')) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*"?([^"\n#]*)"?\s*$/)
+    for (const line of raw.split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*"?([^"\n]*)"?\s*$/)
       if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim()
     }
     console.log('[server] Loaded .env')
@@ -51,6 +47,11 @@ try {
   console.warn('[server] Could not read .env:', e.message)
 }
 
+// Imported after .env is loaded so the DB pool sees the credentials
+const { initDatabase, query } = await import('./api/db.js')
+const { default: authHandler, requireAdmin, ensureAdminUser } = await import('./api/auth.js')
+const { UPLOAD_DIR } = await import('./api/upload.js')
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
@@ -58,40 +59,33 @@ const app = express()
 const PORT = Number(process.env.PORT) || 3000
 
 // ─── Middleware ─────────────────────────────────────────────────────────────
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: false,
-  maxAge: 86400,
-}))
-// Handle preflight for every route
-app.options('*', cors())
-app.use(express.json({ limit: '10mb' })) // matches api/upload.js sizeLimit
-app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+app.set('trust proxy', 1) // behind LiteSpeed/Passenger: real client IP + https detection
+app.disable('x-powered-by')
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  next()
+})
+app.use(express.json({ limit: '12mb' })) // base64 image uploads up to 8 MB
 app.use((req, _res, next) => {
-  const t = new Date().toISOString()
-  console.log(`[${t}] ${req.method.padEnd(6)} ${req.originalUrl}`)
+  if (req.path.startsWith('/api/')) console.log(`[${new Date().toISOString()}] ${req.method.padEnd(6)} ${req.originalUrl}`)
   next()
 })
 
 // ─── Health check ───────────────────────────────────────────────────────────
-app.get('/health', (_req, res) => {
-  const configured = Boolean(
-    (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY)
-  )
-  res.status(configured ? 200 : 503).json({ ok: configured, service: 'le-grande-haven-api', databaseConfigured: configured, time: new Date().toISOString() })
+app.get('/health', async (_req, res) => {
+  try {
+    await query('SELECT 1')
+    res.json({ ok: true, service: 'le-grande-haven', database: 'up', time: new Date().toISOString() })
+  } catch (err) {
+    res.status(503).json({ ok: false, service: 'le-grande-haven', database: 'down', error: err.code || err.message })
+  }
 })
 
 // ─── API routes ─────────────────────────────────────────────────────────────
-// Wrap each Vercel-style default handler so it works as Express middleware.
-// Vercel handlers accept (req, res); req.body is already parsed JSON — Express
-// gives us the same via express.json(). We just forward them.
 const wrap = (handler) => async (req, res) => {
   try {
-    // Vercel handlers set CORS themselves and inspect req.method — this is
-    // exactly what Express provides, so no shimming required.
     await handler(req, res)
   } catch (err) {
     console.error('[api handler error]', err)
@@ -99,46 +93,45 @@ const wrap = (handler) => async (req, res) => {
   }
 }
 
-const mount = async (route, file) => {
-  const abs = path.join(__dirname, 'api', file)
-  if (!fs.existsSync(abs)) {
-    console.warn(`[server] Skipping ${route} — ${file} not found`)
-    return
-  }
-  const mod = await import(pathToFileURL(abs).href)
-  const handler = mod.default
-  if (typeof handler !== 'function') {
-    console.warn(`[server] Skipping ${route} — ${file} has no default export`)
-    return
-  }
-  app.all(route, wrap(handler))
-  console.log(`[server] ${route.padEnd(20)} → api/${file}`)
+// Methods listed in `publicMethods` are open to site visitors; every other
+// method on the route requires an admin session.
+const mount = async (route, file, publicMethods = []) => {
+  const mod = await import(pathToFileURL(path.join(__dirname, 'api', file)).href)
+  const guard = (req, res, next) => (publicMethods.includes(req.method) ? next() : requireAdmin(req, res, next))
+  app.all(route, guard, wrap(mod.default))
 }
 
-// ─── Wire every serverless handler up as a route ────────────────────────────
-await mount('/api/rooms',        'rooms.js')
-await mount('/api/bookings',     'bookings.js')
-await mount('/api/reservations', 'reservations.js')
-await mount('/api/food',         'food.js')
-await mount('/api/drinks',       'drinks.js')
-await mount('/api/gallery',      'gallery.js')
-await mount('/api/messages',     'messages.js')
+app.all('/api/auth/:action', wrap(authHandler))
+await mount('/api/rooms',        'rooms.js',        ['GET'])
+await mount('/api/food',         'food.js',         ['GET'])
+await mount('/api/drinks',       'drinks.js',       ['GET'])
+await mount('/api/gallery',      'gallery.js',      ['GET'])
+await mount('/api/bookings',     'bookings.js',     ['POST'])
+await mount('/api/reservations', 'reservations.js', ['POST'])
+await mount('/api/messages',     'messages.js',     ['POST'])
 await mount('/api/staff',        'staff.js')
 await mount('/api/stats',        'stats.js')
 await mount('/api/upload',       'upload.js')
-await mount('/api/db-wake',      'db-wake.js')
 
 // ─── 404 for unmatched /api routes  (must come BEFORE SPA fallback) ────────
-app.use('/api/*', (req, res) => {
+app.use('/api', (req, res) => {
   res.status(404).json({ error: `Route not found: ${req.method} ${req.originalUrl}` })
 })
+
+// ─── Uploaded images ────────────────────────────────────────────────────────
+app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d', fallthrough: false }))
 
 // ─── Static frontend (production build) ─────────────────────────────────────
 const distDir = path.join(__dirname, 'dist')
 if (fs.existsSync(distDir)) {
-  app.use(express.static(distDir, { maxAge: '1h', index: false }))
+  // Vite's hashed bundles never change — cache them for a year
+  app.use('/assets', express.static(path.join(distDir, 'assets'), { maxAge: '1y', immutable: true }))
+  // redirect: false — /food, /drinks and /rooms are both pages and image folders;
+  // without it express answers the page URL with a 301 to "/food/"
+  app.use(express.static(distDir, { maxAge: '7d', index: false, redirect: false }))
   // SPA fallback — anything else returns index.html so client-side routing works
   app.get(/^\/(?!api\/).*/, (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache')
     res.sendFile(path.join(distDir, 'index.html'))
   })
   console.log(`[server] Serving static frontend from ${distDir}`)
@@ -148,16 +141,21 @@ if (fs.existsSync(distDir)) {
 
 // ─── Global error handler ───────────────────────────────────────────────────
 app.use((err, _req, res, _next) => {
+  if (err.status === 404 || err.statusCode === 404) return res.status(404).end()
   console.error('[server error]', err)
-  if (!res.headersSent) res.status(500).json({ error: err.message || 'Internal server error' })
+  if (!res.headersSent) res.status(err.status || 500).json({ error: err.expose ? err.message : 'Internal server error' })
 })
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
+try {
+  await initDatabase()
+  await ensureAdminUser()
+  console.log('[server] Database ready')
+} catch (err) {
+  // Keep serving the site so /health can report the problem
+  console.error('[server] Database initialisation failed:', err.message)
+}
+
 app.listen(PORT, () => {
-  console.log('')
-  console.log('════════════════════════════════════════════════════════════')
-  console.log(`  Le Grande Haven API server running on http://localhost:${PORT}`)
-  console.log('  Health check: /health')
-  console.log('  Try:          /api/rooms   /api/food   /api/drinks')
-  console.log('════════════════════════════════════════════════════════════')
+  console.log(`[server] Le Grande Haven running on port ${PORT}`)
 })

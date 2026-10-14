@@ -1,28 +1,19 @@
-import supabase from './db-client.js';
-
-const cors = (res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-};
+import { query, queryOne } from './db.js';
 
 export default async function handler(req, res) {
-  cors(res);
-  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const [rooms, bookings, reservations, messages, food, drinks] = await Promise.all([
-      supabase.from('rooms').select('id, available, name, price_per_night'),
-      supabase.from('bookings').select('*, rooms(name)').order('created_at', { ascending: false }).limit(50),
-      supabase.from('restaurant_reservations').select('*').order('created_at', { ascending: false }).limit(50),
-      supabase.from('contact_messages').select('id', { count: 'exact', head: true }),
-      supabase.from('food_items').select('id', { count: 'exact', head: true }),
-      supabase.from('drink_items').select('id', { count: 'exact', head: true }),
+    // Arrivals/departures follow the hotel's calendar day, not UTC
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Nairobi' });
+    const [roomsData, bookingsData, reservationsData, messages, food, drinks] = await Promise.all([
+      query('SELECT id, available, name, price_per_night FROM rooms'),
+      query(`SELECT b.*, r.name AS room_name FROM bookings b LEFT JOIN rooms r ON r.id = b.room_id
+              ORDER BY b.created_at DESC LIMIT 50`),
+      query('SELECT * FROM restaurant_reservations ORDER BY created_at DESC LIMIT 50'),
+      queryOne('SELECT COUNT(*) AS n FROM contact_messages'),
+      queryOne('SELECT COUNT(*) AS n FROM food_items'),
+      queryOne('SELECT COUNT(*) AS n FROM drink_items'),
     ]);
-
-    const roomsData = rooms.data || [];
-    const bookingsData = bookings.data || [];
-    const reservationsData = reservations.data || [];
 
     const occupiedRoomIds = new Set(bookingsData.filter(b => b.status === 'checked_in' || (b.status === 'confirmed' && b.check_in <= today && b.check_out > today)).map(b => b.room_id));
 
@@ -37,8 +28,6 @@ export default async function handler(req, res) {
       return sum + (room ? Number(room.price_per_night) * nights : 0);
     }, 0);
 
-    const recent = bookingsData.slice(0, 8).map(b => ({ ...b, room_name: b.rooms?.name, rooms: undefined }));
-
     return res.status(200).json({
       totalRooms: roomsData.length,
       availableRooms: roomsData.filter(r => r.available && !occupiedRoomIds.has(r.id)).length,
@@ -47,11 +36,11 @@ export default async function handler(req, res) {
       todayDepartures: departures,
       pendingBookings: pending,
       reservations: reservationsData.length,
-      messages: messages.count ?? 0,
-      foodCount: food.count ?? 0,
-      drinkCount: drinks.count ?? 0,
+      messages: messages.n,
+      foodCount: food.n,
+      drinkCount: drinks.n,
       revenue,
-      recentBookings: recent,
+      recentBookings: bookingsData.slice(0, 8),
       recentReservations: reservationsData.slice(0, 8),
     });
   } catch (err) {

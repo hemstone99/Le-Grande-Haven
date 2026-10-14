@@ -5,7 +5,7 @@ const items = [
   { href: 'https://www.instagram.com/legrandehaven?stkn=ZnZ6ZTZjMTIwNWZp&utm_source=ig_contact_invite', label: 'Instagram', Icon: Instagram, bg: 'bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af]' },
   { href: 'https://www.tiktok.com/@legrazzt157?_r=1&_t=ZS-99az9KxQn0n', label: 'TikTok', Icon: Music2, bg: 'bg-black' },
   { href: 'https://www.facebook.com/share/18zG2jozwq/?mibextid=wwXIfr', label: 'Facebook', Icon: Facebook, bg: 'bg-[#1877f2]' },
-  { href: 'https://wa.me/0182219969?text=Hello%20Le%20Grande%20Haven', label: 'WhatsApp', Icon: MessageCircle, bg: 'bg-[#25D366]' },
+  { href: 'https://wa.me/254182219969?text=Hello%20Le%20Grande%20Haven', label: 'WhatsApp', Icon: MessageCircle, bg: 'bg-[#25D366]' },
 ]
 
 export default function FloatingSocials() {

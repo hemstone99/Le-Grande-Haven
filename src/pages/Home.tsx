@@ -9,7 +9,6 @@ import { fetchFoodWithFallback } from '../lib/foodData'
 
 type Room = { id: string; slug: string; name: string; short_description: string; price_per_night: number; guests: number; room_type: string; images?: { url: string }[] }
 type Item = { id: string; name: string; description: string; price: number; image_url: string; category: string; featured: boolean }
-type Gal = { id: string; url: string; caption: string; category: string }
 
 // Every slide fills the whole hero frame via object-cover.
 // `focal` sets the smart crop position so the subject is preserved on landscape screens.
@@ -19,7 +18,7 @@ const HERO_SLIDES: { url: string; label: string; focal: string }[] = [
   { url: '/hero/hero-lush.jpg',           label: 'Lush Coastal Gardens',   focal: 'center 60%' },
   { url: '/hero/hero-accommodation.jpg',  label: 'Coastal Accommodation',  focal: 'center 65%' },
   { url: '/hero/hero-whiskies.jpg',       label: 'The Whisky Bar',         focal: 'center 55%' },
-  { url: '/hero/kids-playground.png',     label: 'Kids’ Playground',        focal: 'center center' },
+  { url: '/hero/kids-playground.jpg',     label: 'Kids’ Playground',        focal: 'center center' },
   { url: '/hero/hero-conference.jpg',     label: 'Conference & Events',    focal: 'center center' },
 ]
 
@@ -28,8 +27,11 @@ export default function Home() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [food, setFood] = useState<Item[]>([])
   const [drinks, setDrinks] = useState<Item[]>([])
-  const [gallery, setGallery] = useState<Gal[]>([])
   const [slide, setSlide] = useState(0)
+  // Only mount hero slides up to one ahead of the current one, so the first
+  // slide isn't competing with six other full-screen downloads
+  const [slidesMounted, setSlidesMounted] = useState(2)
+  useEffect(() => { setSlidesMounted(n => Math.max(n, slide + 2)) }, [slide])
 
   useEffect(() => {
     fetchRoomsWithFallback().then(d => setRooms(d.slice(0, 4)))
@@ -52,24 +54,6 @@ export default function Home() {
       }
       setDrinks(picked.slice(0, 6))
     })
-    // Gallery flow: destination → dining → rooms
-    const FALLBACK_GALLERY: Gal[] = [
-      // Destination
-      { id: 'g1', url: '/hero/hero-lush.jpg',          caption: 'Arriving at Le Grande Haven · Kanana',    category: 'destination' },
-      { id: 'g2', url: '/hero/hero-2.jpg',             caption: 'Tropical gardens · Kanana',                category: 'destination' },
-      { id: 'g3', url: '/hero/hero-accommodation.jpg', caption: 'The accommodation building · Kanana',      category: 'destination' },
-      // Dining
-      { id: 'g4', url: '/hero/hero-whiskies.jpg',      caption: 'The Whisky Bar',                           category: 'dining' },
-      { id: 'g5', url: '/food/fish-large.jpg',         caption: 'Fresh Swahili seafood',                    category: 'dining' },
-      // Rooms
-      { id: 'g6', url: '/hero/hero-1.jpg',             caption: 'Four-poster suite · Kanana',               category: 'rooms' },
-      { id: 'g7', url: '/hero/hero-5.jpg',             caption: 'Serene coastal rooms · Kanana',            category: 'rooms' },
-      { id: 'g8', url: '/hero/hero-6.jpg',             caption: 'The Pweza Suite · Kanana',                 category: 'rooms' },
-    ]
-    fetch('/api/gallery')
-      .then(r => r.json())
-      .then(d => setGallery(Array.isArray(d) && d.length ? d.slice(0, 8) : FALLBACK_GALLERY))
-      .catch(() => setGallery(FALLBACK_GALLERY))
   }, [])
 
   useEffect(() => {
@@ -83,11 +67,14 @@ export default function Home() {
       <section className="relative min-h-screen w-full overflow-hidden">
         {HERO_SLIDES.map((s, i) => {
           const isActive = i === slide
+          if (i >= slidesMounted && !isActive) return null
           return (
             <img
               key={s.url}
               src={s.url}
               alt={s.label}
+              fetchPriority={i === 0 ? 'high' : 'low'}
+              decoding="async"
               style={{ objectPosition: s.focal }}
               className={`absolute inset-0 w-full h-full object-cover will-change-[opacity,transform] transition-[opacity,transform,filter] duration-[2200ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isActive ? 'opacity-100 scale-100 blur-0 animate-hero-ken' : 'opacity-0 scale-105 blur-[2px]'}`}
             />
@@ -169,7 +156,7 @@ export default function Home() {
           </div>
           <div className="relative">
             <div className="absolute -top-6 -left-6 w-2/3 h-2/3 border-2 border-sand rounded-3xl" />
-            <img src="/hero/karibu.jpg" className="relative rounded-3xl w-full h-[560px] object-cover shadow-2xl" style={{ objectPosition: 'center 55%' }} alt="Guests enjoying drinks in the Le Grande Haven garden" />
+            <img loading="lazy" decoding="async" src="/hero/karibu.jpg" className="relative rounded-3xl w-full h-[560px] object-cover shadow-2xl" style={{ objectPosition: 'center 55%' }} alt="Guests enjoying drinks in the Le Grande Haven garden" />
             <div className="absolute -bottom-6 -right-6 bg-cream rounded-2xl p-5 shadow-xl max-w-xs">
               <div className="flex items-center gap-1 text-sand">{Array.from({length: 5}).map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}</div>
               <p className="text-sm text-forest-deep mt-2 italic">“A quiet, generous stay. The seafood is exceptional and the gardens are magical.”</p>
@@ -192,7 +179,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-14">
             {food.length ? food.map(f => (
               <div key={f.id} className="group rounded-3xl overflow-hidden bg-forest-light/40 border border-cream/10 lift">
-                <div className="h-56 img-zoom"><img src={f.image_url} alt={f.name} className="w-full h-full object-cover" /></div>
+                <div className="h-56 img-zoom"><img loading="lazy" decoding="async" src={f.image_url} alt={f.name} className="w-full h-full object-cover" /></div>
                 <div className="p-6">
                   <div className="text-[10px] uppercase tracking-[0.3em] text-sand">{f.category}</div>
                   <div className="flex items-baseline justify-between mt-2 gap-3">
@@ -242,7 +229,7 @@ export default function Home() {
 
           <div className="grid lg:grid-cols-2 gap-6 mt-12">
             <article className="group relative min-h-[420px] rounded-[2rem] overflow-hidden border border-cream/15 shadow-2xl">
-              <img src="/hero/hero-whiskies.jpg" alt="Cold beers at The Haven bar" className="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105" style={{ objectPosition: 'center 55%' }} />
+              <img loading="lazy" decoding="async" src="/hero/hero-whiskies.jpg" alt="Cold beers at The Haven bar" className="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105" style={{ objectPosition: 'center 55%' }} />
               <div className="absolute inset-0 bg-gradient-to-t from-forest-deep via-forest-deep/55 to-transparent" />
               <div className="absolute top-5 left-5 flex items-center gap-2 rounded-full bg-sand text-forest-deep px-4 py-2 text-[10px] uppercase tracking-[0.25em] font-bold"><Beer className="w-4 h-4" /> Bar special</div>
               <div className="relative min-h-[420px] flex flex-col justify-end p-7 md:p-9">
@@ -254,7 +241,7 @@ export default function Home() {
             </article>
 
             <article className="group relative min-h-[420px] rounded-[2rem] overflow-hidden border border-sand/40 shadow-2xl">
-              <img src="/hero/kids-playground.png" alt="Kids playing on the playground at Le Grande Haven" className="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105" style={{ objectPosition: 'center center' }} />
+              <img loading="lazy" decoding="async" src="/hero/kids-playground.jpg" alt="Kids playing on the playground at Le Grande Haven" className="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105" style={{ objectPosition: 'center center' }} />
               <div className="absolute inset-0 bg-gradient-to-t from-forest-deep/90 via-forest-deep/30 to-transparent" />
               <div className="absolute top-5 left-5 flex items-center gap-2 rounded-full bg-clay text-cream px-4 py-2 text-[10px] uppercase tracking-[0.25em] font-bold"><Gamepad2 className="w-4 h-4" /> Family favourite</div>
               <div className="relative min-h-[420px] flex flex-col justify-end p-7 md:p-9">
@@ -285,7 +272,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-14">
             {rooms.length ? rooms.map(r => (
               <Link key={r.id} to={`/rooms/${r.slug}`} className="group rounded-3xl overflow-hidden bg-white border border-forest/5 lift block">
-                <div className="h-72 img-zoom"><img src={r.images?.[0]?.url || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80'} alt={r.name} className="w-full h-full object-cover" /></div>
+                <div className="h-72 img-zoom"><img loading="lazy" decoding="async" src={r.images?.[0]?.url || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80'} alt={r.name} className="w-full h-full object-cover" /></div>
                 <div className="p-5">
                   <div className="text-[10px] uppercase tracking-[0.3em] text-clay">{r.room_type}</div>
                   <div className="flex items-baseline justify-between mt-1"><h3 className="font-display text-2xl text-forest">{r.name}</h3><div className="font-display text-forest">{KSH(r.price_per_night)}<span className="text-xs text-earth">/night</span></div></div>
@@ -327,23 +314,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* GALLERY */}
-      <section className="py-24">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center max-w-2xl mx-auto">
-            <div className="text-xs uppercase tracking-[0.4em] text-clay">Gallery</div>
-            <h2 className="font-display text-4xl sm:text-5xl text-forest mt-4">Moments at Le Grande Haven.</h2>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-14">
-            {gallery.length ? gallery.map((g, idx) => (
-              <div key={g.id} className={`img-zoom rounded-2xl overflow-hidden ${idx % 5 === 0 ? 'md:row-span-2 md:h-full' : ''}`}>
-                <img src={g.url} alt={g.caption} className={`w-full object-cover ${idx % 5 === 0 ? 'h-full min-h-[420px]' : 'h-56'}`} />
-              </div>
-            )) : Array.from({length: 8}).map((_, i) => <div key={i} className="h-56 rounded-2xl bg-cream animate-pulse" />)}
-          </div>
-        </div>
-      </section>
-
       {/* LOCATION */}
       <section className="py-24 bg-cream-100">
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-10 items-center">
@@ -365,7 +335,7 @@ export default function Home() {
 
       {/* CTA */}
       <section className="py-24 relative overflow-hidden">
-        <img src="/hero/hero-lush.jpg" alt="Le Grande Haven gardens, Kanana" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: 'center 60%' }} />
+        <img loading="lazy" decoding="async" src="/hero/hero-lush.jpg" alt="Le Grande Haven gardens, Kanana" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: 'center 60%' }} />
         <div className="absolute inset-0 bg-forest-deep/80" />
         <div className="relative max-w-4xl mx-auto px-6 text-center text-cream">
           <div className="text-xs uppercase tracking-[0.4em] text-sand">Ready for a memorable stay?</div>

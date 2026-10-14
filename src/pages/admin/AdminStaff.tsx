@@ -105,7 +105,7 @@ export default function AdminStaff() {
             <div key={s.id} className={`rounded-3xl bg-white border p-5 lift ${s.active ? 'border-forest/5' : 'border-earth/10 opacity-70'}`}>
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-cream overflow-hidden shrink-0 grid place-items-center">
-                  {s.photo_url ? <img src={s.photo_url} alt={s.full_name} className="w-full h-full object-cover" /> : <span className="font-display text-2xl text-forest">{s.full_name.slice(0, 2).toUpperCase()}</span>}
+                  {s.photo_url ? <img loading="lazy" decoding="async" src={s.photo_url} alt={s.full_name} className="w-full h-full object-cover" /> : <span className="font-display text-2xl text-forest">{s.full_name.slice(0, 2).toUpperCase()}</span>}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[10px] uppercase tracking-widest text-clay">{s.role}</div>

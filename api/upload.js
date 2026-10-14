@@ -1,44 +1,26 @@
-import supabase from './db-client.js';
-import sharp from 'sharp';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const BUCKET = 'menu-images';
+// Uploaded images live outside dist/ so redeploys never wipe them.
+// server.js serves this directory at /uploads.
+export const UPLOAD_DIR = process.env.UPLOAD_DIR
+  || path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'uploads');
 
-const cors = (res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-};
+const MAX_BYTES = 8 * 1024 * 1024;
+const RASTER = /^image\/(jpeg|png|webp)$/i;
+const PASSTHROUGH = { 'image/gif': '.gif' }; // SVG is rejected: it can carry scripts
+const ORIGINAL_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 
-export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
-
-// Try to auto-create the bucket if it doesn't exist yet. Handles the very
-// first upload on a fresh Supabase project so admins don't have to create
-// it manually.
-let bucketReady = false;
-async function ensureBucket() {
-  if (bucketReady) return;
-  try {
-    const { data: existing } = await supabase.storage.getBucket(BUCKET);
-    if (existing) { bucketReady = true; return; }
-  } catch { /* bucket doesn't exist yet */ }
-  try {
-    const { error } = await supabase.storage.createBucket(BUCKET, {
-      public: true,
-      fileSizeLimit: 5 * 1024 * 1024,
-      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml'],
-    });
-    if (error && !/already exists/i.test(error.message)) throw error;
-    bucketReady = true;
-    console.log(`[upload] Created storage bucket "${BUCKET}"`);
-  } catch (err) {
-    // We'll surface a friendly error on upload if this failed
-    console.warn(`[upload] Could not auto-create bucket "${BUCKET}":`, err.message);
-  }
-}
+// sharp is a native module; load it lazily so a host without a compatible
+// binary still serves the site and stores uploads un-optimised.
+let sharpPromise;
+const loadSharp = () => (sharpPromise ??= import('sharp').then(m => m.default).catch((err) => {
+  console.warn('[upload] sharp unavailable — storing images without optimisation:', err.message);
+  return null;
+}));
 
 export default async function handler(req, res) {
-  cors(res);
-  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
@@ -46,42 +28,33 @@ export default async function handler(req, res) {
     if (!fileName || !fileBase64) {
       return res.status(400).json({ error: 'fileName and fileBase64 are required' });
     }
-
-    await ensureBucket();
+    const isRaster = RASTER.test(contentType || '');
+    if (!isRaster && !PASSTHROUGH[contentType]) {
+      return res.status(400).json({ error: 'Only JPEG, PNG, WebP or GIF images can be uploaded' });
+    }
 
     const inputBuffer = Buffer.from(fileBase64, 'base64');
-    const isRaster = /^image\/(jpeg|png|webp)$/i.test(contentType || '');
-    const buffer = isRaster
+    if (inputBuffer.length > MAX_BYTES) return res.status(413).json({ error: 'Image is larger than 8 MB' });
+
+    const sharp = isRaster ? await loadSharp() : null;
+    const buffer = sharp
       ? await sharp(inputBuffer, { failOn: 'none' })
           .rotate()
           .resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true })
           .webp({ quality: 82, effort: 5 })
           .toBuffer()
       : inputBuffer;
-    const safeName = fileName.replace(/[^a-z0-9.\-_]+/gi, '-').toLowerCase();
-    const outputName = isRaster ? `${safeName.replace(/\.[^.]+$/, '')}.webp` : safeName;
-    const path = `${folder || 'misc'}/${Date.now()}-${outputName}`;
+    const ext = sharp ? '.webp' : (ORIGINAL_EXT[contentType] || PASSTHROUGH[contentType]);
 
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, buffer, {
-        contentType: isRaster ? 'image/webp' : (contentType || 'image/jpeg'),
-        upsert: true,
-        cacheControl: '3600',
-      });
+    const safeFolder = String(folder || 'misc').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase() || 'misc';
+    const base = path.basename(fileName).replace(/\.[^.]+$/, '').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase() || 'image';
+    const outputName = `${Date.now()}-${base}${ext}`;
 
-    if (error) {
-      // Friendly error mapping
-      if (/bucket not found/i.test(error.message)) {
-        return res.status(500).json({
-          error: `Storage bucket "${BUCKET}" not found. Run supabase-schema.sql, or create a public bucket named "${BUCKET}" in Supabase → Storage.`,
-        });
-      }
-      throw error;
-    }
+    await fs.mkdir(path.join(UPLOAD_DIR, safeFolder), { recursive: true });
+    await fs.writeFile(path.join(UPLOAD_DIR, safeFolder, outputName), buffer);
 
-    const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-    return res.status(200).json({ url: urlData.publicUrl, path });
+    const rel = `${safeFolder}/${outputName}`;
+    return res.status(200).json({ url: `/uploads/${rel}`, path: rel });
   } catch (err) {
     console.error('upload API:', err);
     return res.status(500).json({ error: err.message || 'Upload failed' });

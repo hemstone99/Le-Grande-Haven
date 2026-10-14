@@ -43,7 +43,7 @@ export default function AdminFood() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map(f => (
             <div key={f.id} className="rounded-2xl overflow-hidden bg-white border border-forest/5 flex flex-col">
-              <div className="h-40 bg-cream"><img src={f.image_url} alt={f.name} className="w-full h-full object-cover" /></div>
+              <div className="h-40 bg-cream"><img loading="lazy" decoding="async" src={f.image_url} alt={f.name} className="w-full h-full object-cover" /></div>
               <div className="p-4 flex-1 flex flex-col">
                 <div className="text-[10px] uppercase tracking-widest text-clay">{f.category}</div>
                 <div className="flex items-baseline justify-between mt-1"><div className="font-display text-lg text-forest">{f.name}</div><div className="font-semibold text-forest">{KSH(f.price)}</div></div>

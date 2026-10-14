@@ -17,7 +17,7 @@ export default function About() {
 
       <section className="py-24">
         <div className="max-w-6xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
-          <img src="/hero/hero-accommodation.jpg" alt="Le Grande Haven accommodation building, Kanana" className="rounded-3xl h-[520px] w-full object-cover shadow-xl" style={{ objectPosition: 'center 65%' }} />
+          <img loading="lazy" decoding="async" src="/hero/hero-accommodation.jpg" alt="Le Grande Haven accommodation building, Kanana" className="rounded-3xl h-[520px] w-full object-cover shadow-xl" style={{ objectPosition: 'center 65%' }} />
           <div>
             <div className="text-xs uppercase tracking-[0.4em] text-clay">Our Story</div>
             <h2 className="font-display text-5xl text-forest mt-4">A haven, honestly.</h2>
@@ -59,7 +59,7 @@ export default function About() {
             </div>
           </div>
           <div className="relative">
-            <img src="/hero/hero-lush.jpg" className="rounded-3xl h-[500px] w-full object-cover shadow-xl" style={{ objectPosition: 'center 60%' }} alt="Le Grande Haven lush gardens, Kanana" />
+            <img loading="lazy" decoding="async" src="/hero/hero-lush.jpg" className="rounded-3xl h-[500px] w-full object-cover shadow-xl" style={{ objectPosition: 'center 60%' }} alt="Le Grande Haven lush gardens, Kanana" />
             <div className="absolute -bottom-8 -left-8 bg-forest text-cream p-6 rounded-2xl shadow-2xl max-w-xs hidden md:block"><Trees className="w-6 h-6 text-sand" /><div className="font-display text-xl mt-3">In harmony with the coast.</div><div className="text-xs text-cream/70 mt-2">Locally sourced, respectfully served.</div></div>
           </div>
         </div>
@@ -74,11 +74,11 @@ export default function About() {
             <p className="text-earth mt-3">Call, WhatsApp or email — we usually reply within a few hours.</p>
           </div>
           <div className="grid sm:grid-cols-3 gap-4 mt-10">
-            <a href="tel:0182219969" className="p-6 rounded-2xl bg-white border border-forest/5 lift flex items-start gap-4">
+            <a href="tel:+254182219969" className="p-6 rounded-2xl bg-white border border-forest/5 lift flex items-start gap-4">
               <div className="w-11 h-11 rounded-xl bg-forest text-cream grid place-items-center shrink-0"><Phone className="w-5 h-5" /></div>
               <div><div className="text-[10px] uppercase tracking-widest text-earth">Call us</div><div className="font-display text-lg text-forest mt-1 break-all">0182 219 969</div></div>
             </a>
-            <a href="https://wa.me/0182219969?text=Hello%20Le%20Grande%20Haven" target="_blank" rel="noreferrer" className="p-6 rounded-2xl bg-white border border-forest/5 lift flex items-start gap-4">
+            <a href="https://wa.me/254182219969?text=Hello%20Le%20Grande%20Haven" target="_blank" rel="noreferrer" className="p-6 rounded-2xl bg-white border border-forest/5 lift flex items-start gap-4">
               <div className="w-11 h-11 rounded-xl bg-[#25D366] text-white grid place-items-center shrink-0"><MessageCircle className="w-5 h-5" /></div>
               <div><div className="text-[10px] uppercase tracking-widest text-earth">WhatsApp</div><div className="font-display text-lg text-forest mt-1 break-all">0182 219 969</div></div>
             </a>

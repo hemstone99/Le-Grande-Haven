@@ -1,27 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Loader2, AlertCircle } from 'lucide-react'
-import supabase from '../lib/supabase'
+import { Loader2 } from 'lucide-react'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Login() {
   const nav = useNavigate()
   const { push } = useToast()
-  const { user, loading } = useAuth()
+  const { user, loading, signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
-  const [envError, setEnvError] = useState<string | null>(null)
-
-  // Verify env is configured — critical for local VS Code dev
-  useEffect(() => {
-    const url = (import.meta.env.VITE_SUPABASE_URL as string) || (import.meta.env.NEXT_PUBLIC_SUPABASE_URL as string)
-    const key = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || (import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string)
-    if (!url || !key) {
-      setEnvError('Supabase credentials are missing. Copy .env.example → .env, fill in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, then restart the dev server.')
-    }
-  }, [])
 
   // If already signed in, jump straight to admin
   useEffect(() => {
@@ -30,30 +19,15 @@ export default function Login() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (envError) { push(envError, 'error'); return }
     setBusy(true)
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    })
+    const error = await signIn(email.trim(), password)
     if (error) {
-      // Friendly error mapping
-      const msg = /Invalid login/i.test(error.message)
-        ? 'Invalid email or password. Please try again.'
-        : /Email not confirmed/i.test(error.message)
-        ? 'This admin account has not been confirmed yet. Please contact the site owner.'
-        : error.message
-      push(msg, 'error')
+      push(error, 'error')
       setBusy(false)
       return
     }
-    if (data.session) {
-      push('Welcome back', 'success')
-      nav('/admin', { replace: true })
-    } else {
-      push('Signed in, but no session was created. Please retry.', 'error')
-      setBusy(false)
-    }
+    push('Welcome back', 'success')
+    nav('/admin', { replace: true })
   }
 
   return (
@@ -90,13 +64,6 @@ export default function Login() {
           <h2 className="font-display text-4xl text-forest mt-3">Welcome back</h2>
           <p className="text-earth mt-2">Access the staff dashboard.</p>
 
-          {envError && (
-            <div className="mt-6 p-4 rounded-2xl bg-clay/10 border border-clay/30 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-clay shrink-0 mt-0.5" />
-              <div className="text-xs text-forest-deep leading-relaxed whitespace-pre-line">{envError}</div>
-            </div>
-          )}
-
           <form onSubmit={submit} className="mt-8 space-y-4" autoComplete="on">
             <div>
               <label htmlFor="email" className="text-xs uppercase tracking-widest text-earth">Email</label>
@@ -127,7 +94,7 @@ export default function Login() {
               />
             </div>
             <button
-              disabled={busy || !!envError}
+              disabled={busy}
               type="submit"
               className="w-full px-6 py-3.5 rounded-full bg-forest text-cream font-semibold hover:bg-forest-deep transition disabled:opacity-60 flex items-center justify-center gap-2"
             >

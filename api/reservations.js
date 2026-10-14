@@ -1,41 +1,32 @@
-import supabase from './db-client.js';
+import { query, queryOne, uuid } from './db.js';
 
-const cors = (res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-};
+const STATUSES = ['pending', 'confirmed', 'seated', 'cancelled'];
 
 export default async function handler(req, res) {
-  cors(res);
-  if (req.method === 'OPTIONS') return res.status(204).end();
   try {
     if (req.method === 'GET') {
-      const { data, error } = await supabase.from('restaurant_reservations').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      return res.status(200).json(data);
+      return res.status(200).json(await query('SELECT * FROM restaurant_reservations ORDER BY created_at DESC'));
     }
     if (req.method === 'POST') {
       const b = req.body || {};
-      if (!b.name || !b.phone) return res.status(400).json({ error: 'Missing fields' });
-      const { data, error } = await supabase.from('restaurant_reservations').insert({
-        name: b.name, phone: b.phone, email: b.email || null,
-        reservation_date: b.reservation_date, reservation_time: b.reservation_time,
-        party_size: b.party_size || 1, notes: b.notes || null, status: 'pending',
-      }).select().single();
-      if (error) throw error;
-      return res.status(201).json(data);
+      if (!b.name || !b.phone || !b.reservation_date || !b.reservation_time) return res.status(400).json({ error: 'Missing fields' });
+      const id = uuid();
+      await query(
+        `INSERT INTO restaurant_reservations (id, name, phone, email, reservation_date, reservation_time, party_size, notes, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+        [id, b.name, b.phone, b.email || null, b.reservation_date, b.reservation_time, b.party_size || 1, b.notes || null]);
+      return res.status(201).json(await queryOne('SELECT * FROM restaurant_reservations WHERE id = ?', [id]));
     }
     if (req.method === 'PUT') {
       const { id, status } = req.body || {};
-      const { data, error } = await supabase.from('restaurant_reservations').update({ status }).eq('id', id).select().single();
-      if (error) throw error;
-      return res.status(200).json(data);
+      if (!id || !STATUSES.includes(status)) return res.status(400).json({ error: 'id and a valid status are required' });
+      await query('UPDATE restaurant_reservations SET status = ? WHERE id = ?', [status, id]);
+      return res.status(200).json(await queryOne('SELECT * FROM restaurant_reservations WHERE id = ?', [id]));
     }
     if (req.method === 'DELETE') {
       const { id } = req.body || {};
-      const { error } = await supabase.from('restaurant_reservations').delete().eq('id', id);
-      if (error) throw error;
+      if (!id) return res.status(400).json({ error: 'id required' });
+      await query('DELETE FROM restaurant_reservations WHERE id = ?', [id]);
       return res.status(200).json({ ok: true });
     }
     return res.status(405).json({ error: 'Method not allowed' });

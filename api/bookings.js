@@ -1,67 +1,54 @@
-import supabase from './db-client.js';
+import { query, queryOne, transaction, uuid } from './db.js';
 
-const cors = (res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-};
-
-const overlaps = (bookings, checkIn, checkOut) => {
-  const ci = new Date(checkIn).getTime();
-  const co = new Date(checkOut).getTime();
-  return bookings.some(b => {
-    if (['cancelled', 'checked_out'].includes(b.status)) return false;
-    const bi = new Date(b.check_in).getTime();
-    const bo = new Date(b.check_out).getTime();
-    return bi < co && bo > ci;
-  });
-};
+const STATUSES = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'];
 
 export default async function handler(req, res) {
-  cors(res);
-  if (req.method === 'OPTIONS') return res.status(204).end();
   try {
     if (req.method === 'GET') {
-      const { data, error } = await supabase.from('bookings').select('*, rooms(name, price_per_night)').order('created_at', { ascending: false });
-      if (error) throw error;
-      const rows = (data || []).map(b => ({ ...b, room_name: b.rooms?.name, room_price: b.rooms?.price_per_night, rooms: undefined }));
+      const rows = await query(
+        `SELECT b.*, r.name AS room_name, r.price_per_night AS room_price
+           FROM bookings b LEFT JOIN rooms r ON r.id = b.room_id
+          ORDER BY b.created_at DESC`);
       return res.status(200).json(rows);
     }
     if (req.method === 'POST') {
       const b = req.body || {};
       if (!b.room_id || !b.guest_name || !b.phone || !b.check_in || !b.check_out) return res.status(400).json({ error: 'Room, guest name, phone, check-in and check-out are required' });
-      // Check overlap — surface the real DB error instead of silently ignoring it
-      const { data: existing, error: overlapErr } = await supabase.from('bookings').select('*').eq('room_id', b.room_id);
-      if (overlapErr) throw overlapErr;
-      if (overlaps(existing || [], b.check_in, b.check_out)) return res.status(409).json({ error: 'Room already booked for those dates' });
-      const { data, error } = await supabase.from('bookings').insert({
-        room_id: b.room_id, guest_name: b.guest_name, phone: b.phone, email: b.email || null,
-        check_in: b.check_in, check_out: b.check_out, guests: b.guests || 1,
-        special_requests: b.special_requests || null, status: 'pending',
-      }).select().single();
-      if (error) throw error;
-      return res.status(201).json(data);
+      if (!(new Date(b.check_out) > new Date(b.check_in))) return res.status(400).json({ error: 'Check-out must be after check-in' });
+      const id = uuid();
+      const conflict = await transaction(async (tx) => {
+        // Lock the room's bookings so two simultaneous requests can't double-book it
+        const clash = await tx.query(
+          `SELECT id FROM bookings
+            WHERE room_id = ? AND status NOT IN ('cancelled', 'checked_out')
+              AND check_in < ? AND check_out > ?
+            FOR UPDATE`, [b.room_id, b.check_out, b.check_in]);
+        if (clash.length) return true;
+        await tx.query(
+          `INSERT INTO bookings (id, room_id, guest_name, phone, email, check_in, check_out, guests, special_requests, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+          [id, b.room_id, b.guest_name, b.phone, b.email || null, b.check_in, b.check_out, b.guests || 1, b.special_requests || null]);
+        return false;
+      });
+      if (conflict) return res.status(409).json({ error: 'Room already booked for those dates' });
+      return res.status(201).json(await queryOne('SELECT * FROM bookings WHERE id = ?', [id]));
     }
     if (req.method === 'PUT') {
       const { id, status } = req.body || {};
       if (!id || !status) return res.status(400).json({ error: 'id and status required' });
-      const { data, error } = await supabase.from('bookings').update({ status }).eq('id', id).select().single();
-      if (error) throw error;
-      return res.status(200).json(data);
+      if (!STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+      await query('UPDATE bookings SET status = ? WHERE id = ?', [status, id]);
+      return res.status(200).json(await queryOne('SELECT * FROM bookings WHERE id = ?', [id]));
     }
     if (req.method === 'DELETE') {
       const { id } = req.body || {};
-      const { error } = await supabase.from('bookings').delete().eq('id', id);
-      if (error) throw error;
+      if (!id) return res.status(400).json({ error: 'id required' });
+      await query('DELETE FROM bookings WHERE id = ?', [id]);
       return res.status(200).json({ ok: true });
     }
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
     console.error('bookings API:', err);
-    let msg = err.message || 'Booking failed';
-    if (/permission denied/i.test(msg)) {
-      msg = 'Database permission denied. Run supabase-schema.sql on your Supabase project (it includes the required GRANTs and RLS policies).';
-    }
-    return res.status(500).json({ error: msg });
+    return res.status(500).json({ error: err.message || 'Booking failed' });
   }
 }

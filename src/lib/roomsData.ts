@@ -214,15 +214,24 @@ export const FALLBACK_ROOMS: FallbackRoom[] = [
   },
 ]
 
-// Fetch rooms with graceful fallback when API is unavailable.
-export async function fetchRoomsWithFallback(): Promise<FallbackRoom[]> {
-  try {
-    const res = await fetch('/api/rooms')
-    if (!res.ok) throw new Error('API not ok')
-    const data = await res.json()
-    if (Array.isArray(data)) return data as FallbackRoom[]
-    return FALLBACK_ROOMS
-  } catch {
-    return FALLBACK_ROOMS
-  }
+// Fetch rooms with graceful fallback when API is unavailable. The booking
+// modal and the page both ask for rooms on load, so callers within a minute
+// share one request.
+let roomsRequest: { at: number; promise: Promise<FallbackRoom[]> } | null = null
+
+export function fetchRoomsWithFallback(): Promise<FallbackRoom[]> {
+  if (roomsRequest && Date.now() - roomsRequest.at < 60_000) return roomsRequest.promise
+  const promise = (async () => {
+    try {
+      const res = await fetch('/api/rooms')
+      if (!res.ok) throw new Error('API not ok')
+      const data = await res.json()
+      if (Array.isArray(data)) return data as FallbackRoom[]
+      return FALLBACK_ROOMS
+    } catch {
+      return FALLBACK_ROOMS
+    }
+  })()
+  roomsRequest = { at: Date.now(), promise }
+  return promise
 }

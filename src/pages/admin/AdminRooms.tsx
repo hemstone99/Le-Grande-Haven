@@ -54,7 +54,7 @@ export default function AdminRooms() {
             <tbody className="divide-y divide-forest/5">
               {rooms.map(r => (
                 <tr key={r.id} className="hover:bg-cream-50">
-                  <td className="px-6 py-4"><div className="flex items-center gap-3"><img src={r.images?.[0]?.url || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=200&q=80'} className="w-14 h-14 rounded-xl object-cover" alt="" /><div><div className="font-semibold text-forest">{r.name}</div><div className="text-xs text-earth">{r.short_description}</div></div></div></td>
+                  <td className="px-6 py-4"><div className="flex items-center gap-3"><img loading="lazy" decoding="async" src={r.images?.[0]?.url || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=200&q=80'} className="w-14 h-14 rounded-xl object-cover" alt="" /><div><div className="font-semibold text-forest">{r.name}</div><div className="text-xs text-earth">{r.short_description}</div></div></div></td>
                   <td className="px-6 py-4 text-sm">{r.room_type}</td>
                   <td className="px-6 py-4 text-sm">{r.guests}</td>
                   <td className="px-6 py-4 text-sm font-semibold">{KSH(r.price_per_night)}</td>
@@ -90,7 +90,7 @@ export default function AdminRooms() {
                 <div className="mt-2 space-y-3 p-4 rounded-xl bg-white border border-forest/10">
                   {(editing.images || []).map((img, idx) => (
                     <div key={idx} className="flex items-center gap-3">
-                      <img src={img.url} alt="" className="w-16 h-16 rounded-lg object-cover bg-cream" />
+                      <img loading="lazy" decoding="async" src={img.url} alt="" className="w-16 h-16 rounded-lg object-cover bg-cream" />
                       <input
                         type="url"
                         value={img.url}

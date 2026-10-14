@@ -1,29 +1,54 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { Session, User } from '@supabase/supabase-js'
-import supabase from '../lib/supabase'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 
-type Ctx = { user: User | null; session: Session | null; loading: boolean; isAdmin: boolean; signOut: () => Promise<void> }
-const AuthContext = createContext<Ctx>({ user: null, session: null, loading: true, isAdmin: false, signOut: async () => {} })
+export type User = { id: string; email: string }
+
+type Ctx = {
+  user: User | null
+  loading: boolean
+  isAdmin: boolean
+  signIn: (email: string, password: string) => Promise<string | null>
+  signOut: () => Promise<void>
+}
+const AuthContext = createContext<Ctx>({ user: null, loading: true, isAdmin: false, signIn: async () => null, signOut: async () => {} })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // The session lives in an HttpOnly cookie — ask the server who we are
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session); setUser(session?.user ?? null); setLoading(false)
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setSession(session); setUser(session?.user ?? null); setLoading(false)
-    })
-    return () => subscription.unsubscribe()
+    fetch('/api/auth/me')
+      .then(r => (r.ok ? r.json() : { user: null }))
+      .then(d => setUser(d.user ?? null))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false))
   }, [])
 
-  const isAdmin = !!user // all authenticated users are treated as admins for this seed demo
-  const signOut = async () => { await supabase.auth.signOut() }
+  // Returns an error message, or null on success
+  const signIn = useCallback(async (email: string, password: string) => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) return data.error || 'Sign in failed. Please try again.'
+      setUser(data.user)
+      return null
+    } catch {
+      return 'Could not reach the server. Check your connection and try again.'
+    }
+  }, [])
 
-  return <AuthContext.Provider value={{ user, session, loading, isAdmin, signOut }}>{children}</AuthContext.Provider>
+  const signOut = useCallback(async () => {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+    setUser(null)
+  }, [])
+
+  const isAdmin = !!user // every account in admin_users is an administrator
+
+  return <AuthContext.Provider value={{ user, loading, isAdmin, signIn, signOut }}>{children}</AuthContext.Provider>
 }
 
 export const useAuth = () => useContext(AuthContext)
