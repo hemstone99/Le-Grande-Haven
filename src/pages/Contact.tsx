@@ -72,7 +72,7 @@ export default function Contact() {
               {openNow ? 'Restaurant open now · until 11pm' : 'Restaurant opens at 7am · Reception open 24/7'}
             </div>
             <h1 className="font-display text-5xl sm:text-6xl md:text-8xl mt-6 leading-[0.95]">Let’s talk<em className="text-sand">.</em></h1>
-            <p className="text-cream/80 mt-6 max-w-xl text-lg">Planning a stay, a celebration or simply a table for two? Our team in Kanana is here to help — usually within the hour.</p>
+            <p className="text-cream/80 mt-6 max-w-xl text-lg">Planning a stay, a celebration or simply a table for two? Our team in Kanana is always happy to help.</p>
           </div>
           <div className="hidden lg:flex justify-end gap-3">
             {[{ i: KeyRound, t: 'Check-in', v: '11:00am' }, { i: ConciergeBell, t: 'Reception', v: '24 hours' }, { i: UtensilsCrossed, t: 'Restaurant', v: '7am – 11pm' }].map(({ i: I, t, v }) => (

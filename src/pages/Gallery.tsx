@@ -47,7 +47,7 @@ const LIBRARY: Photo[] = [
   { url: '/beverages/african-tea.jpg', caption: 'Spiced African tea', category: 'bar' },
   { url: '/conference/banquet.jpg', caption: 'The banquet hall', category: 'events' },
   { url: '/conference/outdoor.jpg', caption: 'Garden pavilion receptions', category: 'events' },
-  { url: '/conference/boardroom.jpg', caption: 'The boardroom', category: 'events' },
+  { url: '/conference/meeting-room.jpg', caption: 'The boardroom — U-shaped meeting set-up', category: 'events' },
   { url: '/conference/presentation.jpg', caption: 'Training & presentations', category: 'events' },
   { url: '/hero/hero-conference.jpg', caption: 'Conferences at the Haven', category: 'events' },
 ]

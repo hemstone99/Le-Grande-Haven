@@ -15,7 +15,7 @@ const SPACES = [
   { title: 'The Garden Pavilion', capacity: 200, img: '/conference/outdoor.jpg', desc: 'A shaded outdoor pavilion under palms and mangoes — perfect for launches, weddings and receptions.', tags: ['Receptions', 'Weddings', 'Launches'] },
   { title: 'The Banquet Hall', capacity: 120, img: '/conference/banquet.jpg', desc: 'An elegant hall for gala dinners and celebrations, with plated or buffet dining.', tags: ['Gala dinners', 'Parties'] },
   { title: 'The Training Room', capacity: 40, img: '/conference/presentation.jpg', desc: 'A modern theatre-style room with projector, whiteboard and full AV.', tags: ['Training', 'Workshops'] },
-  { title: 'The Boardroom', capacity: 16, img: '/conference/boardroom.jpg', desc: 'A polished executive boardroom for high-level meetings and strategy sessions.', tags: ['Board meetings', 'Interviews'] },
+  { title: 'The Boardroom', capacity: 16, img: '/conference/meeting-room.jpg', pos: 'center 22%', desc: 'A bright meeting room with U-shaped tables, natural light and garden views — ideal for board meetings and strategy sessions.', tags: ['Board meetings', 'Interviews'] },
 ]
 
 const PACKAGES = [
@@ -121,7 +121,7 @@ export default function Conference() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
             {SPACES.map((s, i) => (
               <article key={s.title} className={`group relative rounded-3xl overflow-hidden min-h-[340px] ${i === 0 ? 'lg:col-span-2 lg:row-span-2 lg:min-h-[700px]' : ''} ${i === SPACES.length - 1 ? 'lg:col-span-3 lg:min-h-[320px]' : ''}`}>
-                <img loading="lazy" decoding="async" src={s.img} alt={s.title} className="absolute inset-0 w-full h-full object-cover transition duration-1000 group-hover:scale-105" />
+                <img loading="lazy" decoding="async" src={s.img} alt={s.title} style={{ objectPosition: s.pos }} className="absolute inset-0 w-full h-full object-cover transition duration-1000 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-linear-to-t from-forest-deep/95 via-forest-deep/40 to-transparent" />
                 <div className="absolute top-5 left-5 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur text-forest text-sm font-semibold shadow"><Users className="w-4 h-4 text-clay" /> Up to {s.capacity}</div>
                 <div className="absolute inset-x-0 bottom-0 p-6 md:p-8 text-cream">
