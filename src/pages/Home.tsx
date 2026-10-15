@@ -382,24 +382,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* WHY */}
-      <section className="py-24 bg-cream-100">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center max-w-2xl mx-auto">
-            <div className="text-xs uppercase tracking-[0.4em] text-clay">Why Guests Choose Us</div>
-            <h2 className="font-display text-4xl sm:text-5xl text-forest mt-4">The details that make a stay memorable.</h2>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-14">
-            {WHY.map(({ i, bg, t, d }) => (
-              <div key={t} className="p-6 rounded-[1.5rem] bg-white border border-forest/5 hover:-translate-y-1 hover:shadow-xl transition duration-500">
-                <IconTile icon={i} bg={bg} size={48} />
-                <div className="font-display text-xl text-forest mt-5 leading-snug">{t}</div>
-                <p className="text-earth-light text-sm mt-2 leading-relaxed">{d}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       {/* LOCATION */}
       <section className="py-24">
@@ -426,19 +409,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-28 relative overflow-hidden">
-        <img loading="lazy" decoding="async" src="/hero/hero-lush.jpg" alt="Le Grande Haven gardens, Kanana" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: 'center 60%' }} />
-        <div className="absolute inset-0 bg-forest-deep/80" />
-        <div className="relative max-w-4xl mx-auto px-6 text-center text-cream">
-          <div className="text-xs uppercase tracking-[0.4em] text-sand">Ready for a memorable stay?</div>
-          <h2 className="font-display text-5xl md:text-7xl mt-6 leading-tight">Come as guests, <em className="text-sand">leave as friends.</em></h2>
-          <div className="mt-10 flex flex-wrap gap-4 justify-center">
-            <button onClick={() => openBooking()} className="px-8 py-4 rounded-full bg-sand text-forest-deep font-semibold hover:bg-cream transition">Book a Room</button>
-            <button onClick={openReservation} className="px-8 py-4 rounded-full border border-cream/40 text-cream font-semibold hover:bg-cream/10 transition">Reserve a Table</button>
-          </div>
-        </div>
-      </section>
+
 
       {/* signature line */}
       <div className="py-10 border-t border-forest/10 overflow-hidden">
