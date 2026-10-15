@@ -144,45 +144,23 @@ export default function Home() {
           .animate-hero-ken { animation: heroKen 5.5s ease-out forwards; }
         `}</style>
 
-        <div className="relative z-10 min-h-[100svh] flex items-center">
-          <div className="max-w-7xl mx-auto px-6 w-full pt-32 pb-44 grid lg:grid-cols-[1.4fr_1fr] gap-10 items-end">
-            <div className="text-cream animate-fade-up">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cream/10 border border-cream/20 backdrop-blur text-[11px] uppercase tracking-[0.3em] text-sand">
-                <MapPin className="w-3.5 h-3.5" /> Kanana · Kwale County
-              </div>
-              <h1 className="font-display text-6xl sm:text-7xl md:text-8xl xl:text-[8.5rem] leading-[0.9] tracking-tight mt-6">Le Grande<br /><em className="text-sand">Haven</em></h1>
-              <div className="font-display italic text-2xl md:text-3xl text-cream/90 mt-6">Taste. Stay. Relax.</div>
-              <p className="mt-5 text-lg text-cream/80 max-w-xl leading-relaxed">Experience great food, refreshing drinks and peaceful accommodation in the heart of Kanana, Shimoni.</p>
-              <div className="mt-9 flex flex-wrap gap-3">
-                <button onClick={() => openBooking()} className="group px-7 py-4 rounded-full bg-sand text-forest-deep font-semibold hover:bg-cream transition inline-flex items-center gap-2 shadow-lg shadow-black/20">Book Your Stay <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" /></button>
-                <button onClick={openReservation} className="px-7 py-4 rounded-full bg-cream/10 border border-cream/30 backdrop-blur text-cream font-semibold hover:bg-cream/20 transition">Reserve a Table</button>
-                <Link to="/food" className="px-5 py-4 rounded-full text-cream font-semibold hover:text-sand transition inline-flex items-center gap-2">Explore the menu <ArrowUpRight className="w-4 h-4" /></Link>
-              </div>
-            </div>
-
-            {/* Glass quick-info card */}
-            <div className="hidden lg:block justify-self-end w-full max-w-sm animate-fade-up">
-              <div className="rounded-[1.75rem] p-6 bg-forest-deep/60 border border-cream/15 backdrop-blur-xl text-cream shadow-2xl">
-                <div className="text-[10px] uppercase tracking-[0.3em] text-sand">Plan your visit</div>
-                <ul className="mt-4 space-y-4">
-                  {[
-                    { Icon: BedDouble, t: fromPrice ? `Rooms from ${KSH(fromPrice)}` : 'Ten restful rooms', d: 'Per night · breakfast included' },
-                    { Icon: UtensilsCrossed, t: 'Restaurant & bar', d: 'Open daily · 7am – 11pm' },
-                    { Icon: ConciergeBell, t: 'Reception 24/7', d: 'Check-in from 11am' },
-                  ].map(({ Icon, t, d }) => (
-                    <li key={d} className="flex items-center gap-3">
-                      <span className="w-10 h-10 rounded-xl bg-cream/15 grid place-items-center text-sand shrink-0"><Icon className="w-5 h-5" /></span>
-                      <div><div className="font-semibold">{t}</div><div className="text-xs text-cream/70">{d}</div></div>
-                    </li>
-                  ))}
-                </ul>
-                <a href={whatsappLink('Hello Le Grande Haven, I’d like to make a booking.')} target="_blank" rel="noreferrer" className="mt-5 flex items-center gap-3 p-2 pr-4 rounded-2xl bg-cream/10 hover:bg-cream/20 transition">
-                  <BrandTile brand="whatsapp" size={36} /><span className="text-sm font-semibold">Chat with us on WhatsApp</span><ArrowRight className="w-4 h-4 ml-auto" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
+         <div className="relative z-10 min-h-[100svh] flex items-center">
+           <div className="max-w-7xl mx-auto px-6 w-full pt-32 pb-44 grid lg:grid-cols-[1.4fr_1fr] gap-10 items-end">
+             <div className="text-cream animate-fade-up">
+               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cream/10 border border-cream/20 backdrop-blur text-[11px] uppercase tracking-[0.3em] text-sand">
+                 <MapPin className="w-3.5 h-3.5" /> Kanana · Kwale County
+               </div>
+               <h1 className="font-display text-6xl sm:text-7xl md:text-8xl xl:text-[8.5rem] leading-[0.9] tracking-tight mt-6">Le Grande<br /><em className="text-sand">Haven</em></h1>
+               <div className="font-display italic text-2xl md:text-3xl text-cream/90 mt-6">Taste. Stay. Relax.</div>
+               <p className="mt-5 text-lg text-cream/80 max-w-xl leading-relaxed">Experience great food, refreshing drinks and peaceful accommodation in the heart of Kanana, Shimoni.</p>
+               <div className="mt-9 flex flex-wrap gap-3">
+                 <button onClick={() => openBooking()} className="group px-7 py-4 rounded-full bg-sand text-forest-deep font-semibold hover:bg-cream transition inline-flex items-center gap-2 shadow-lg shadow-black/20">Book Your Stay <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" /></button>
+                 <button onClick={openReservation} className="px-7 py-4 rounded-full bg-cream/10 border border-cream/30 backdrop-blur text-cream font-semibold hover:bg-cream/20 transition">Reserve a Table</button>
+                 <Link to="/food" className="px-5 py-4 rounded-full text-cream font-semibold hover:text-sand transition inline-flex items-center gap-2">Explore the menu <ArrowUpRight className="w-4 h-4" /></Link>
+               </div>
+             </div>
+           </div>
+         </div>
 
         {/* Progress bars — sit above the wave */}
         <div className="absolute bottom-24 md:bottom-32 inset-x-0 z-10">
