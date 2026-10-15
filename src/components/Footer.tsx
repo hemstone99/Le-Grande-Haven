@@ -15,11 +15,7 @@ export default function Footer() {
     return () => clearInterval(id)
   }, [])
 
-  const contacts = [
-    { tile: <BrandTile brand="whatsapp" size={40} />, label: 'WhatsApp', value: 'Chat with us', href: whatsappLink(), external: true },
-    { tile: <BrandTile brand="gmail" size={40} />, label: 'Email', value: EMAIL, href: `mailto:${EMAIL}` },
-    { tile: <BrandTile brand="maps" size={40} />, label: 'Visit', value: 'Kanana, Shimoni · Kwale', href: MAPS_DIRECTIONS, external: true },
-  ]
+  // Email moved to social media section below
 
   return (
     <footer className="relative bg-forest-deep text-cream/80 overflow-hidden">
@@ -39,7 +35,7 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-6 pt-16 pb-10 grid gap-12 lg:grid-cols-[1.3fr_0.7fr_1.2fr_1fr]">
+      <div className="relative max-w-7xl mx-auto px-6 pt-16 pb-10 grid gap-12 lg:grid-cols-[1.4fr_1fr_1.2fr]">
         {/* Brand */}
         <div>
           <Link to="/" className="flex items-center gap-3">
@@ -50,13 +46,12 @@ export default function Footer() {
             </div>
           </Link>
           <p className="mt-5 text-sm leading-relaxed text-cream/65 max-w-sm">A coastal sanctuary in Kanana where Kenyan hospitality meets calm gardens, honest cooking and restful nights.</p>
-           <div className="flex items-center gap-3 mt-6">
-             {([['instagram', 'Instagram'], ['facebook', 'Facebook'], ['tiktok', 'TikTok']] as const).map(([b, label]) => (
-               <a key={b} href={SOCIALS[b]} target="_blank" rel="noreferrer" aria-label={label} className="hover:-translate-y-0.5 transition"><BrandTile brand={b} size={40} /></a>
-             ))}
-             <a href={whatsappLink()} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="hover:-translate-y-0.5 transition"><BrandTile brand="whatsapp" size={40} /></a>
-             <a href={PHONE_TEL} className="hover:-translate-y-0.5 transition"><IconTile icon={Phone} bg={TILE_BG.phone} size={40} /></a>
-           </div>
+            <div className="flex items-center gap-3 mt-6">
+              {([['instagram', 'Instagram'], ['facebook', 'Facebook'], ['tiktok', 'TikTok']] as const).map(([b, label]) => (
+                <a key={b} href={SOCIALS[b]} target="_blank" rel="noreferrer" aria-label={label} className="hover:-translate-y-0.5 transition"><BrandTile brand={b} size={40} /></a>
+              ))}
+              <a href={`mailto:${EMAIL}`} className="hover:-translate-y-0.5 transition"><BrandTile brand="gmail" size={40} /></a>
+            </div>
         </div>
 
         {/* Explore */}
@@ -68,24 +63,6 @@ export default function Footer() {
             ))}
           </ul>
         </nav>
-
-        {/* Contact */}
-        <div>
-          <div className="text-xs uppercase tracking-[0.3em] text-sand mb-5">Get in touch</div>
-          <ul className="space-y-2">
-            {contacts.map(c => (
-              <li key={c.label}>
-                <a href={c.href} {...(c.external ? { target: '_blank', rel: 'noreferrer' } : {})} className="group flex items-center gap-3 p-2 -mx-2 rounded-2xl hover:bg-cream/5 transition">
-                  {c.tile}
-                  <span className="min-w-0">
-                    <span className="block text-[11px] uppercase tracking-widest text-cream/50">{c.label}</span>
-                    <span className="block text-sm text-cream truncate group-hover:text-sand transition">{c.value}</span>
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
 
         {/* Hours */}
         <div>
