@@ -1,0 +1,68 @@
+name: Deploy via SFTP
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy-package
+          cp server.js app.cjs deploy-package/
+          cp -r api dist deploy-package/
+          echo "Deployment package created:"
+          ls -la deploy-package/
+          echo "API files count: $(find deploy-package/api -type f | wc -l)"
+          echo "Dist files count: $(find deploy-package/dist -type f | wc -l)"
+
+      - name: Deploy via SFTP
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
+        with:
+          server: ${{ secrets.SFTP_HOST }}
+          port: ${{ secrets.SFTP_PORT }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          local_path: ./deploy-package/
+          remote_path: /home/${{ secrets.SFTP_USERNAME }}/legrandehaven/
+          # Optional: exclude certain files
+          exclude: |
+            **/.git*
+            **/node_modules/*
+            **/npm-debug.log
+            .env
+            .env.example
+            .git*
+            .github/**
+            scripts/**
+            selfcheck.sh
+            render.yaml
+            tsconfig*
+            vite.config.*
+            eslint.*
+            DEPLOYMENT.md
+            cpanel.txt
+            README.md
+            uploads/**
+
+      - name: Clean up
+        run: rm -rf deploy-package
+
+      - name: Success message
+        run: echo "Deployment completed! Remember to restart the app in cPanel if needed."
