@@ -38,7 +38,7 @@ jobs:
           server: ${{ secrets.SFTP_HOST }}
           port: ${{ secrets.SFTP_PORT }}
           username: ${{ secrets.SFTP_USERNAME }}
-          ssh-key: ${{ secrets.SFTP_SSH_ACCESS}}
+          password: ${{ secrets.SFTP_PASSWORD}}
           local_path: ./deploy-package/
           remote_path: /home/${{ secrets.SFTP_USERNAME }}/legrandehaven/
           # Optional: exclude certain files
