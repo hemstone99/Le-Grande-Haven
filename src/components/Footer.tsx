@@ -16,7 +16,6 @@ export default function Footer() {
   }, [])
 
   const contacts = [
-    { tile: <IconTile icon={Phone} bg={TILE_BG.phone} size={40} />, label: 'Call', value: PHONE_DISPLAY, href: PHONE_TEL },
     { tile: <BrandTile brand="whatsapp" size={40} />, label: 'WhatsApp', value: 'Chat with us', href: whatsappLink(), external: true },
     { tile: <BrandTile brand="gmail" size={40} />, label: 'Email', value: EMAIL, href: `mailto:${EMAIL}` },
     { tile: <BrandTile brand="maps" size={40} />, label: 'Visit', value: 'Kanana, Shimoni · Kwale', href: MAPS_DIRECTIONS, external: true },
@@ -51,12 +50,13 @@ export default function Footer() {
             </div>
           </Link>
           <p className="mt-5 text-sm leading-relaxed text-cream/65 max-w-sm">A coastal sanctuary in Kanana where Kenyan hospitality meets calm gardens, honest cooking and restful nights.</p>
-          <div className="flex items-center gap-3 mt-6">
-            {([['instagram', 'Instagram'], ['facebook', 'Facebook'], ['tiktok', 'TikTok']] as const).map(([b, label]) => (
-              <a key={b} href={SOCIALS[b]} target="_blank" rel="noreferrer" aria-label={label} className="hover:-translate-y-0.5 transition"><BrandTile brand={b} size={40} /></a>
-            ))}
-            <a href={whatsappLink()} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="hover:-translate-y-0.5 transition"><BrandTile brand="whatsapp" size={40} /></a>
-          </div>
+           <div className="flex items-center gap-3 mt-6">
+             {([['instagram', 'Instagram'], ['facebook', 'Facebook'], ['tiktok', 'TikTok']] as const).map(([b, label]) => (
+               <a key={b} href={SOCIALS[b]} target="_blank" rel="noreferrer" aria-label={label} className="hover:-translate-y-0.5 transition"><BrandTile brand={b} size={40} /></a>
+             ))}
+             <a href={whatsappLink()} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="hover:-translate-y-0.5 transition"><BrandTile brand="whatsapp" size={40} /></a>
+             <a href={PHONE_TEL} className="hover:-translate-y-0.5 transition"><IconTile icon={Phone} bg={TILE_BG.phone} size={40} /></a>
+           </div>
         </div>
 
         {/* Explore */}
