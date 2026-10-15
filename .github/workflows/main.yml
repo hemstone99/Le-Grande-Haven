@@ -40,7 +40,7 @@ jobs:
           username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD}}
           local_path: ./deploy-package/
-          remote_path: /home/${{ secrets.SFTP_USERNAME }}/legrandehaven1/
+          remote_path: legrandehaven/
           # Optional: exclude certain files
           exclude: |
             **/.git*
