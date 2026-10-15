@@ -33,14 +33,14 @@ jobs:
           echo "Dist files count: $(find deploy-package/dist -type f | wc -l)"
 
       - name: Deploy via SFTP
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.0
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
-          host: ${{ secrets.SFTP_HOST }}
+          server: ${{ secrets.SFTP_HOST }}
           port: ${{ secrets.SFTP_PORT }}
           username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
-          local_dir: ./deploy-package/
-          remote_dir: /home/${{ secrets.SFTP_USERNAME }}/legrandehaven/
+          local_path: ./deploy-package/
+          remote_path: /home/${{ secrets.SFTP_USERNAME }}/legrandehaven/
           # Optional: exclude certain files
           exclude: |
             **/.git*
