@@ -197,6 +197,10 @@ const SCHEMA = [
     password_hash VARCHAR(255) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+  `CREATE TABLE IF NOT EXISTS app_migrations (
+    name VARCHAR(191) PRIMARY KEY,
+    ran_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 // Tables in foreign-key order, for seeding from db/seed.json.
@@ -230,41 +234,59 @@ async function seedIfEmpty() {
   });
 }
 
-// Every room has one bed: two guests, except Mwani and Nyasi whose single bed
-// takes one. Rooms seeded before this was corrected still carry the old
-// multi-bed data; each fix only applies while the old bed_config is in place,
-// so it runs once and never overwrites later admin edits.
-const OCCUPANCY_FIXES = [
-  { slug: 'mwani', was: 'Queen bed', room_type: 'Single', guests: 1, bed_config: 'Single bed',
+// One-off data fixes for databases that were seeded before the content was
+// corrected. Each runs once (recorded in app_migrations), so later edits made
+// in the admin panel are never overwritten.
+async function runOnce(name, fn) {
+  if (await queryOne('SELECT name FROM app_migrations WHERE name = ?', [name])) return;
+  await transaction(fn);
+  await query('INSERT INTO app_migrations (name) VALUES (?)', [name]);
+  console.log(`[db] Ran migration ${name}`);
+}
+
+// Every room has exactly one bed. Mwani and Nyasi have a single bed for one
+// guest; the other eight have a queen bed for two.
+const SINGLE_ROOMS = {
+  mwani: {
     short_description: 'A calm, sun-lit single room for one, named for the sea grasses of the Kwale coast.',
     description: 'Mwani is a serene single room for one guest, bathed in soft coastal light. Warm timber floors, ivory linens, a single bed and a small reading nook by the window make it a favourite with solo travellers and writers. Wake to birdsong and the scent of the neighbouring frangipani tree.' },
-  { slug: 'nyasi', was: 'Queen bed', room_type: 'Single', guests: 1, bed_config: 'Single bed',
+  nyasi: {
     short_description: 'A cosy single room for one, with grass-thatched charm and an earthy palette.',
     description: 'Nyasi means grass — and this room borrows its warmth from the thatched roofs of the coast. Sized for one guest, it pairs a single bed with woven textures, cream walls and a private veranda — ideal for the solo traveller who loves slow mornings with a Kenyan coffee.' },
-  { slug: 'pweza', was: 'King bed + single', guests: 2, bed_config: 'King bed',
-    description: 'Pweza is a bright and airy room for two, with a king bed and tall windows opening to the garden. Its palette of coral and cream feels playful yet grown-up. A great choice for couples who love natural light.',
-    amenities: { 'Comfortable beds': 'Comfortable king bed' } },
-  { slug: 'tafi', was: 'King + 2 singles', room_type: 'Standard', guests: 2, bed_config: 'King bed',
+};
+const QUEEN_ROOMS = {
+  tumbawe: { description: 'Tumbawe channels the calm of an underwater world with soft blues, driftwood accents and a comfortable queen bed. Perfect for couples who want a peaceful base close to the restaurant and gardens.' },
+  pweza: { description: 'Pweza is a bright and airy room for two, with a queen bed and tall windows opening to the garden. Its palette of coral and cream feels playful yet grown-up. A great choice for couples who love natural light.' },
+  mkoko: {},
+  ngisi: {},
+  tafi: { room_type: 'Standard',
     short_description: 'Warm and roomy, with soft rugs and quick access to the garden.',
-    description: 'Tafi is a roomy, relaxed space for two, with one comfortable king bed, soft rugs, a low reading corner and quick access to the garden — an easy base for couples who like to spend their days outdoors.',
-    amenities: { 'Comfortable beds': 'Comfortable king bed', 'Mosquito nets': 'Mosquito net', 'Family friendly': null } },
-  { slug: 'chewa', was: 'Two single beds', room_type: 'Standard', guests: 2, bed_config: 'Double bed',
+    description: 'Tafi is a roomy, relaxed space for two, with a comfortable queen bed, soft rugs, a low reading corner and quick access to the garden — an easy base for couples who like to spend their days outdoors.' },
+  una: {},
+  chewa: { room_type: 'Standard',
     short_description: 'A serene, comfortable room a short stroll from the pool.',
-    description: 'Chewa (grouper fish) offers one comfortable double bed, a writing desk and quick access to the pool area. A calm, practical pick for couples or business travellers.',
-    amenities: { 'Two comfortable beds': 'Comfortable bed', 'Mosquito nets': 'Mosquito net' } },
-];
+    description: 'Chewa (grouper fish) offers a comfortable queen bed, a writing desk and quick access to the pool area. A calm, practical pick for couples or business travellers.' },
+  nguru: { description: 'Nguru is our most spacious accommodation — a suite with a lounge area, a comfortable queen bed, spa-inspired bathroom and a private terrace. Ideal for honeymoons, anniversaries and special occasions.' },
+};
+// Bed-related amenity wording left over from the old multi-bed set-up
+const BED_AMENITIES = {
+  'Comfortable bed': 'Comfortable queen bed', 'Comfortable beds': 'Comfortable queen bed',
+  'Two comfortable beds': 'Comfortable queen bed', 'Comfortable king bed': 'Comfortable queen bed',
+  'Super king bed': 'Comfortable queen bed', 'Mosquito nets': 'Mosquito net', 'Family friendly': null,
+};
 
-async function fixRoomOccupancy() {
-  for (const { slug, was, amenities: swap, ...fields } of OCCUPANCY_FIXES) {
-    const room = await queryOne('SELECT id, amenities FROM rooms WHERE slug = ? AND bed_config = ?', [slug, was]);
-    if (!room) continue;
-    if (swap) {
-      const list = typeof room.amenities === 'string' ? JSON.parse(room.amenities) : (room.amenities || []);
-      fields.amenities = JSON.stringify(list.map(a => (a in swap ? swap[a] : a)).filter(Boolean));
-    }
+async function fixRoomBeds(tx) {
+  const rooms = await tx.query('SELECT id, slug, amenities FROM rooms');
+  for (const room of rooms) {
+    let fields;
+    if (SINGLE_ROOMS[room.slug]) {
+      fields = { room_type: 'Single', guests: 1, bed_config: 'Single bed', ...SINGLE_ROOMS[room.slug] };
+    } else if (QUEEN_ROOMS[room.slug]) {
+      const list = parseJson(room.amenities, []).map(a => (a in BED_AMENITIES ? BED_AMENITIES[a] : a)).filter(Boolean);
+      fields = { guests: 2, bed_config: 'Queen bed', amenities: JSON.stringify([...new Set(list)]), ...QUEEN_ROOMS[room.slug] };
+    } else continue;
     const cols = Object.keys(fields);
-    await query(`UPDATE rooms SET ${cols.map(c => `\`${c}\` = ?`).join(', ')} WHERE id = ?`, [...cols.map(c => fields[c]), room.id]);
-    console.log(`[db] Corrected occupancy for ${slug}`);
+    await tx.query(`UPDATE rooms SET ${cols.map(c => `\`${c}\` = ?`).join(', ')} WHERE id = ?`, [...cols.map(c => fields[c]), room.id]);
   }
 }
 
@@ -272,7 +294,7 @@ async function fixRoomOccupancy() {
 export async function initDatabase() {
   for (const sql of SCHEMA) await query(sql);
   await seedIfEmpty();
-  await fixRoomOccupancy();
+  await runOnce('2026-10-one-bed-per-room', fixRoomBeds);
 }
 
 export default pool;
