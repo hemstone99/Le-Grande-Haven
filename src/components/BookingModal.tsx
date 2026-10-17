@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { X, Loader2, Check, Calendar, Users, Smartphone, Landmark, Banknote, ShieldCheck } from 'lucide-react'
-import { KSH, daysBetween } from '../lib/format'
+import { KSH, daysBetween, guestsLabel } from '../lib/format'
 import { useToast } from '../contexts/ToastContext'
 
 type Room = { id: string; name: string; price_per_night: number; guests: number }
@@ -25,7 +25,10 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
   useEffect(() => {
     if (open) {
       setStep('form')
-      setForm(f => ({ ...f, room_id: preselectedRoomId || rooms[0]?.id || f.room_id }))
+      setForm(f => {
+        const room_id = preselectedRoomId || rooms[0]?.id || f.room_id
+        return { ...f, room_id, guests: Math.min(f.guests, rooms.find(r => r.id === room_id)?.guests || f.guests) }
+      })
       setPayRef('')
       setConfirmed(false)
       setMethod('mpesa')
@@ -44,6 +47,7 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
     e.preventDefault()
     if (!form.room_id || !form.guest_name || !form.phone || !form.check_in || !form.check_out) { push('Please fill all required fields', 'error'); return }
     if (new Date(form.check_out) <= new Date(form.check_in)) { push('Check-out must be after check-in', 'error'); return }
+    if (room && form.guests > room.guests) { push(`${room.name} sleeps ${guestsLabel(room.guests)} — please book another room for the rest of your group`, 'error'); return }
     setStep('payment')
   }
 
@@ -101,8 +105,9 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
           <form onSubmit={goToPayment} className="p-8 space-y-5">
             <div>
               <label className="text-xs uppercase tracking-widest text-earth">Choose a Room</label>
-              <select value={form.room_id} onChange={e => setForm(f => ({ ...f, room_id: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none">
-                {rooms.map(r => <option key={r.id} value={r.id}>{r.name} — {KSH(r.price_per_night)} / night</option>)}
+              {/* Switching to a smaller room drops the guest count to what it sleeps */}
+              <select value={form.room_id} onChange={e => { const next = rooms.find(r => r.id === e.target.value); setForm(f => ({ ...f, room_id: e.target.value, guests: Math.min(f.guests, next?.guests || f.guests) })) }} className="mt-2 w-full px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none">
+                {rooms.map(r => <option key={r.id} value={r.id}>{r.name} — {KSH(r.price_per_night)} / night · sleeps {r.guests}</option>)}
               </select>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -111,7 +116,7 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
               <div className="md:col-span-2"><label className="text-xs uppercase tracking-widest text-earth">Email</label><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none" placeholder="you@email.com" /></div>
               <div><label className="text-xs uppercase tracking-widest text-earth"><Calendar className="w-3 h-3 inline mr-1" />Check-in</label><input type="date" min={today} value={form.check_in} onChange={e => setForm(f => ({ ...f, check_in: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none" /></div>
               <div><label className="text-xs uppercase tracking-widest text-earth"><Calendar className="w-3 h-3 inline mr-1" />Check-out</label><input type="date" min={form.check_in} value={form.check_out} onChange={e => setForm(f => ({ ...f, check_out: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none" /></div>
-              <div><label className="text-xs uppercase tracking-widest text-earth"><Users className="w-3 h-3 inline mr-1" />Guests</label><input type="number" min={1} max={room?.guests || 4} value={form.guests} onChange={e => setForm(f => ({ ...f, guests: parseInt(e.target.value) || 1 }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none" /></div>
+              <div><label className="text-xs uppercase tracking-widest text-earth"><Users className="w-3 h-3 inline mr-1" />Guests</label><input type="number" min={1} max={room?.guests || 2} value={form.guests} onChange={e => setForm(f => ({ ...f, guests: Math.min(Math.max(1, parseInt(e.target.value) || 1), room?.guests || 2) }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none" />{room && <p className="mt-1.5 text-xs text-earth">{room.guests === 1 ? 'Single room — one guest only.' : `One bed, up to ${guestsLabel(room.guests)}.`}</p>}</div>
             </div>
             <div><label className="text-xs uppercase tracking-widest text-earth">Special requests</label><textarea value={form.special_requests} onChange={e => setForm(f => ({ ...f, special_requests: e.target.value }))} rows={3} className="mt-2 w-full px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none resize-none" placeholder="Late arrival, dietary preferences, celebrations..." /></div>
 

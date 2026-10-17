@@ -20,4 +20,6 @@ export const daysBetween = (a: string, b: string) => {
   return Math.max(1, Math.round((d2 - d1) / 86400000))
 }
 
+export const guestsLabel = (n: number) => `${n} guest${n === 1 ? '' : 's'}`
+
 export const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')

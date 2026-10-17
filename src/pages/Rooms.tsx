@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Phone, Users, BedDouble, Bath, ArrowRight, Minus, Plus, Star, Coffee, Wifi, Tv, Car, Sparkles, ShowerHead, KeyRound, ConciergeBell, LayoutGrid, Bed, Crown, Baby, BedSingle, Gem, SearchX, Clock, ShieldCheck } from 'lucide-react'
+import { Phone, Users, BedDouble, Bath, ArrowRight, Minus, Plus, Star, Coffee, Wifi, Tv, Car, Sparkles, ShowerHead, KeyRound, ConciergeBell, LayoutGrid, Bed, Crown, BedSingle, Gem, SearchX, Clock, ShieldCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { KSH } from '../lib/format'
+import { KSH, guestsLabel } from '../lib/format'
 import { useBooking } from '../components/BookingContext'
 import { CardSkeleton } from '../components/Skeleton'
 import { BrandTile, IconTile, TILE_BG } from '../components/BrandIcons'
@@ -16,9 +16,9 @@ type Room = {
   sort_order?: number; images?: { url: string }[]
 }
 
-const TYPE_ORDER = ['Standard', 'Deluxe', 'Twin', 'Family', 'Suite']
-const TYPE_ICONS: Record<string, LucideIcon> = { All: LayoutGrid, Standard: Bed, Deluxe: Gem, Twin: BedSingle, Family: Baby, Suite: Crown }
-const SORTS = { recommended: 'Recommended', 'price-asc': 'Price: low–high', 'price-desc': 'Price: high–low', guests: 'Most guests' } as const
+const TYPE_ORDER = ['Single', 'Standard', 'Deluxe', 'Suite']
+const TYPE_ICONS: Record<string, LucideIcon> = { All: LayoutGrid, Single: BedSingle, Standard: BedDouble, Deluxe: Gem, Suite: Crown }
+const SORTS = { recommended: 'Recommended', 'price-asc': 'Price: low–high', 'price-desc': 'Price: high–low' } as const
 type Sort = keyof typeof SORTS
 
 // Shown on each card — the first of these a room lists, in this priority
@@ -63,7 +63,7 @@ function RoomCard({ room, onBook }: { room: Room; onBook: (id: string) => void }
       <div className="p-6 flex-1 flex flex-col">
         <p className="text-earth text-sm leading-relaxed">{room.short_description}</p>
         <div className="grid grid-cols-3 gap-2 mt-5">
-          {[[Users, `${room.guests} guests`], [BedDouble, room.bed_config], [Bath, 'Ensuite']].map(([Icon, label]) => {
+          {[[Users, guestsLabel(room.guests)], [room.guests === 1 ? BedSingle : BedDouble, room.bed_config], [Bath, 'Ensuite']].map(([Icon, label]) => {
             const I = Icon as LucideIcon
             return <div key={label as string} className="px-2 py-2.5 rounded-xl bg-cream-50 text-center"><I className="w-4 h-4 text-clay mx-auto" /><div className="text-[11px] font-semibold text-forest mt-1 leading-tight">{label as string}</div></div>
           })}
@@ -98,6 +98,7 @@ export default function RoomsPage() {
   }, [rooms])
   const maxGuests = Math.max(1, ...rooms.map(r => r.guests))
   const fromPrice = rooms.length ? Math.min(...rooms.map(r => Number(r.price_per_night))) : 0
+  const singleRooms = rooms.filter(r => r.guests === 1).map(r => r.name)
 
   const visible = useMemo(() => {
     const list = rooms.filter(r => (type === 'All' || r.room_type === type) && r.guests >= guests && (!availableOnly || r.available))
@@ -105,7 +106,6 @@ export default function RoomsPage() {
       recommended: (a, b) => Number(b.featured) - Number(a.featured) || (a.sort_order ?? 0) - (b.sort_order ?? 0),
       'price-asc': (a, b) => a.price_per_night - b.price_per_night,
       'price-desc': (a, b) => b.price_per_night - a.price_per_night,
-      guests: (a, b) => b.guests - a.guests,
     }
     return [...list].sort(by[sort])
   }, [rooms, type, guests, availableOnly, sort])
@@ -180,7 +180,16 @@ export default function RoomsPage() {
       {/* ROOMS */}
       <section className="py-14">
         <div className="max-w-7xl mx-auto px-6">
-          {!loading && <div className="text-sm text-earth mb-6">Showing <strong className="text-forest">{visible.length}</strong> of {rooms.length} rooms</div>}
+          {!loading && (
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+              <div className="text-sm text-earth">Showing <strong className="text-forest">{visible.length}</strong> of {rooms.length} rooms</div>
+              {/* Occupancy is the detail guests most often get wrong, so state it where they choose */}
+              <div className="inline-flex items-start gap-2.5 px-4 py-2.5 rounded-2xl bg-white border border-forest/10 text-sm text-earth">
+                <Users className="w-4 h-4 text-clay shrink-0 mt-0.5" />
+                <span>Every room has one bed for up to <strong className="text-forest">{guestsLabel(maxGuests)}</strong>{singleRooms.length > 0 && <> — {singleRooms.join(' & ')} {singleRooms.length === 1 ? 'is a single room' : 'are single rooms'} for <strong className="text-forest">1 guest</strong></>}.</span>
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">{Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}</div>
           ) : visible.length ? (
@@ -223,6 +232,7 @@ export default function RoomsPage() {
             <div className="text-xs uppercase tracking-[0.4em] text-clay">Good to know</div>
             <ul className="mt-6 space-y-5">
               {[
+                { Icon: Users, t: `One bed per room, up to ${guestsLabel(maxGuests)}`, d: `${singleRooms.length ? `${singleRooms.join(' & ')} sleep${singleRooms.length === 1 ? 's' : ''} 1. ` : ''}Travelling as a group? Book a room for each pair — we’ll place you close together.` },
                 { Icon: KeyRound, t: 'Check-in from 11:00am', d: 'Early check-in on request — tell us your arrival time.' },
                 { Icon: Clock, t: 'Check-out by 10:00am', d: 'Need a little longer? Just ask at reception.' },
                 { Icon: ConciergeBell, t: 'Reception open 24 hours', d: 'Someone is always on hand, day or night.' },

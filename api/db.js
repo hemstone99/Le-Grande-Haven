@@ -230,10 +230,49 @@ async function seedIfEmpty() {
   });
 }
 
+// Every room has one bed: two guests, except Mwani and Nyasi whose single bed
+// takes one. Rooms seeded before this was corrected still carry the old
+// multi-bed data; each fix only applies while the old bed_config is in place,
+// so it runs once and never overwrites later admin edits.
+const OCCUPANCY_FIXES = [
+  { slug: 'mwani', was: 'Queen bed', room_type: 'Single', guests: 1, bed_config: 'Single bed',
+    short_description: 'A calm, sun-lit single room for one, named for the sea grasses of the Kwale coast.',
+    description: 'Mwani is a serene single room for one guest, bathed in soft coastal light. Warm timber floors, ivory linens, a single bed and a small reading nook by the window make it a favourite with solo travellers and writers. Wake to birdsong and the scent of the neighbouring frangipani tree.' },
+  { slug: 'nyasi', was: 'Queen bed', room_type: 'Single', guests: 1, bed_config: 'Single bed',
+    short_description: 'A cosy single room for one, with grass-thatched charm and an earthy palette.',
+    description: 'Nyasi means grass — and this room borrows its warmth from the thatched roofs of the coast. Sized for one guest, it pairs a single bed with woven textures, cream walls and a private veranda — ideal for the solo traveller who loves slow mornings with a Kenyan coffee.' },
+  { slug: 'pweza', was: 'King bed + single', guests: 2, bed_config: 'King bed',
+    description: 'Pweza is a bright and airy room for two, with a king bed and tall windows opening to the garden. Its palette of coral and cream feels playful yet grown-up. A great choice for couples who love natural light.',
+    amenities: { 'Comfortable beds': 'Comfortable king bed' } },
+  { slug: 'tafi', was: 'King + 2 singles', room_type: 'Standard', guests: 2, bed_config: 'King bed',
+    short_description: 'Warm and roomy, with soft rugs and quick access to the garden.',
+    description: 'Tafi is a roomy, relaxed space for two, with one comfortable king bed, soft rugs, a low reading corner and quick access to the garden — an easy base for couples who like to spend their days outdoors.',
+    amenities: { 'Comfortable beds': 'Comfortable king bed', 'Mosquito nets': 'Mosquito net', 'Family friendly': null } },
+  { slug: 'chewa', was: 'Two single beds', room_type: 'Standard', guests: 2, bed_config: 'Double bed',
+    short_description: 'A serene, comfortable room a short stroll from the pool.',
+    description: 'Chewa (grouper fish) offers one comfortable double bed, a writing desk and quick access to the pool area. A calm, practical pick for couples or business travellers.',
+    amenities: { 'Two comfortable beds': 'Comfortable bed', 'Mosquito nets': 'Mosquito net' } },
+];
+
+async function fixRoomOccupancy() {
+  for (const { slug, was, amenities: swap, ...fields } of OCCUPANCY_FIXES) {
+    const room = await queryOne('SELECT id, amenities FROM rooms WHERE slug = ? AND bed_config = ?', [slug, was]);
+    if (!room) continue;
+    if (swap) {
+      const list = typeof room.amenities === 'string' ? JSON.parse(room.amenities) : (room.amenities || []);
+      fields.amenities = JSON.stringify(list.map(a => (a in swap ? swap[a] : a)).filter(Boolean));
+    }
+    const cols = Object.keys(fields);
+    await query(`UPDATE rooms SET ${cols.map(c => `\`${c}\` = ?`).join(', ')} WHERE id = ?`, [...cols.map(c => fields[c]), room.id]);
+    console.log(`[db] Corrected occupancy for ${slug}`);
+  }
+}
+
 // Create tables and load seed data on first boot. Safe to call repeatedly.
 export async function initDatabase() {
   for (const sql of SCHEMA) await query(sql);
   await seedIfEmpty();
+  await fixRoomOccupancy();
 }
 
 export default pool;

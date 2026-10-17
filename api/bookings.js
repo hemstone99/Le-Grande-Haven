@@ -15,6 +15,11 @@ export default async function handler(req, res) {
       const b = req.body || {};
       if (!b.room_id || !b.guest_name || !b.phone || !b.check_in || !b.check_out) return res.status(400).json({ error: 'Room, guest name, phone, check-in and check-out are required' });
       if (!(new Date(b.check_out) > new Date(b.check_in))) return res.status(400).json({ error: 'Check-out must be after check-in' });
+      const room = await queryOne('SELECT name, guests FROM rooms WHERE id = ?', [b.room_id]);
+      if (!room) return res.status(400).json({ error: 'Room not found' });
+      if ((b.guests || 1) > room.guests) {
+        return res.status(400).json({ error: `${room.name} sleeps ${room.guests} guest${room.guests === 1 ? '' : 's'} — please book another room for the rest of your group` });
+      }
       const id = uuid();
       const conflict = await transaction(async (tx) => {
         // Lock the room's bookings so two simultaneous requests can't double-book it

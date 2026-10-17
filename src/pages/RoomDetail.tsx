@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Users, Bed, Check, Wifi, Bath, Coffee, ShieldCheck, Sparkles, MapPin, Phone, MessageCircle } from 'lucide-react'
-import { KSH } from '../lib/format'
+import { KSH, guestsLabel } from '../lib/format'
 import { useBooking } from '../components/BookingContext'
 import { fetchRoomsWithFallback } from '../lib/roomsData'
 
@@ -78,9 +78,14 @@ export default function RoomDetail() {
             <div className="hairline my-6" />
             <p className="text-earth leading-relaxed">{room.description}</p>
             <div className="grid grid-cols-2 gap-3 mt-6">
-              <div className="p-4 rounded-2xl bg-cream border border-forest/5"><Users className="w-4 h-4 text-clay" /><div className="text-xs text-earth mt-2">Sleeps</div><div className="font-display text-xl text-forest">{room.guests} guests</div></div>
+              <div className="p-4 rounded-2xl bg-cream border border-forest/5"><Users className="w-4 h-4 text-clay" /><div className="text-xs text-earth mt-2">Sleeps</div><div className="font-display text-xl text-forest">{guestsLabel(room.guests)}</div></div>
               <div className="p-4 rounded-2xl bg-cream border border-forest/5"><Bed className="w-4 h-4 text-clay" /><div className="text-xs text-earth mt-2">Bed</div><div className="font-display text-xl text-forest">{room.bed_config}</div></div>
             </div>
+            <p className="mt-3 text-sm text-earth">
+              {room.guests === 1
+                ? `A single room — the bed is sized for one guest only. Travelling with someone? Book them a room of their own.`
+                : `One ${room.bed_config.toLowerCase()} for up to ${guestsLabel(room.guests)}. For a larger group, book an extra room.`}
+            </p>
             <button onClick={() => openBooking(room.id)} className="mt-6 w-full px-7 py-4 rounded-full bg-forest text-cream font-semibold hover:bg-forest-deep transition text-lg">Book This Room</button>
             <div className="grid grid-cols-3 gap-2 mt-3">
               <a href="tel:+254182219969" className="px-3 py-3 rounded-full border border-forest/20 text-forest text-xs font-semibold hover:bg-forest/5 flex items-center justify-center gap-2"><Phone className="w-4 h-4" /> Call</a>
@@ -105,7 +110,7 @@ export default function RoomDetail() {
           <div>
             <h2 className="font-display text-4xl text-forest">House Rules</h2>
             <ul className="mt-6 space-y-3 text-earth">
-              {['24-hour reception — check-in from 11:00am (earlier check-in on request)', 'Check-out by 10:00am', 'All rooms include bed & breakfast', 'Quiet hours from 10:00pm to 6:00am', 'No smoking inside the rooms', 'Pets welcome on request', 'Payment on arrival — M-Pesa, bank or cash (50% deposit on booking)', 'Cancellations: free up to 48 hours before arrival'].map(r => <li key={r} className="flex items-start gap-3"><Check className="w-5 h-5 text-forest mt-0.5 shrink-0" /> {r}</li>)}
+              {['24-hour reception — check-in from 11:00am (earlier check-in on request)', 'Check-out by 10:00am', `Maximum ${guestsLabel(room.guests)} in this room — no extra beds`, 'All rooms include bed & breakfast', 'Quiet hours from 10:00pm to 6:00am', 'No smoking inside the rooms', 'Pets welcome on request', 'Payment on arrival — M-Pesa, bank or cash (50% deposit on booking)', 'Cancellations: free up to 48 hours before arrival'].map(r => <li key={r} className="flex items-start gap-3"><Check className="w-5 h-5 text-forest mt-0.5 shrink-0" /> {r}</li>)}
             </ul>
           </div>
         </div>

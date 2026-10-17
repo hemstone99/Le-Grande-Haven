@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { ArrowRight, ArrowUpRight, Wine, Bed, UtensilsCrossed, Trees, MapPin, Sparkles, Coffee, Waves, HeartHandshake, Star, Tv, Gamepad2, Wifi, GlassWater, Beer, Ticket, ConciergeBell, Car, Baby, Clock, BedDouble, Users, Navigation, Presentation, Images } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useBooking } from '../components/BookingContext'
-import { KSH } from '../lib/format'
+import { KSH, guestsLabel } from '../lib/format'
 import { fetchRoomsWithFallback } from '../lib/roomsData'
 import { fetchDrinksWithFallback } from '../lib/drinksData'
 import { fetchFoodWithFallback } from '../lib/foodData'
@@ -371,7 +371,7 @@ export default function Home() {
                     <div className="text-[10px] uppercase tracking-[0.3em] text-sand">{r.room_type}</div>
                     <h3 className="font-display text-3xl mt-1">{r.name}</h3>
                     <div className="flex items-center justify-between mt-3 text-sm">
-                      <span className="flex items-center gap-1.5 text-cream/85"><Users className="w-4 h-4" /> {r.guests} guests</span>
+                      <span className="flex items-center gap-1.5 text-cream/85"><Users className="w-4 h-4" /> {guestsLabel(r.guests)}</span>
                       <span><span className="font-display text-xl">{KSH(r.price_per_night)}</span><span className="text-xs text-cream/70"> /night</span></span>
                     </div>
                   </div>
