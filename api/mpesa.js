@@ -4,12 +4,14 @@ import { query, queryOne, uuid } from './db.js';
 /**
  * M-Pesa STK push (Lipa na M-Pesa Online) for room-booking deposits.
  *
+ *   GET  /api/mpesa/config     { stk }                → whether prompts are switched on
  *   POST /api/mpesa/stk        { booking_id, phone }  → sends the PIN prompt
  *   GET  /api/mpesa/status?id= { status, receipt? }   → polled by the booking form
  *   POST /api/mpesa/callback   ← Safaricom posts the result here
  *   POST /api/mpesa/reference  { booking_id, code }   → manual till payment code
  *
  * Credentials come from the environment (never commit them — the repo is public):
+ *   MPESA_STK_ENABLED       false hides/blocks prompts    (default true)
  *   MPESA_ENV               sandbox | production         (default sandbox)
  *   MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, MPESA_PASSKEY
  *   MPESA_SHORTCODE         paybill / store number used to sign the request
@@ -21,7 +23,9 @@ import { query, queryOne, uuid } from './db.js';
 const env = (k, d = '') => process.env[k] || d;
 const BASE = () => (env('MPESA_ENV', 'sandbox') === 'production' ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke');
 
+// MPESA_STK_ENABLED=false switches prompts off (credentials can stay in place)
 export const mpesaConfigured = () =>
+  env('MPESA_STK_ENABLED', 'true') !== 'false' &&
   Boolean(env('MPESA_CONSUMER_KEY') && env('MPESA_CONSUMER_SECRET') && env('MPESA_PASSKEY') && env('MPESA_SHORTCODE'));
 
 // Safaricom doesn't sign callbacks, so the callback URL carries a token derived
@@ -190,6 +194,7 @@ async function reference(req, res) {
 export default async function handler(req, res) {
   const action = req.params?.action;
   try {
+    if (action === 'config' && req.method === 'GET') return res.status(200).json({ stk: mpesaConfigured() });
     if (action === 'stk' && req.method === 'POST') return await stk(req, res);
     if (action === 'status' && req.method === 'GET') return await status(req, res);
     if (action === 'callback' && req.method === 'POST') return await callback(req, res);

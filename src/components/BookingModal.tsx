@@ -32,6 +32,8 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
   const [bookingId, setBookingId] = useState<string | null>(null)
   const [mpesaPhone, setMpesaPhone] = useState('')
   const [stk, setStk] = useState<Stk>({ state: 'idle' })
+  // Whether the server has M-Pesa prompts switched on; hidden until it says so
+  const [stkEnabled, setStkEnabled] = useState(false)
   // Bumped on close so a running status poll stops
   const pollRun = useRef(0)
   const close = () => { pollRun.current++; onClose() }
@@ -80,6 +82,7 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
     if (room && clash) { push(`${room.name} is already booked ${shortDate(clash.from)} – ${shortDate(clash.to)}. Please choose other dates or another room.`, 'error'); return }
     if (room && form.guests > room.guests) { push(`${room.name} sleeps ${guestsLabel(room.guests)} — please book another room for the rest of your group`, 'error'); return }
     setMpesaPhone(p => p || form.phone)
+    fetch('/api/mpesa/config').then(r => r.json()).then(c => setStkEnabled(!!c?.stk)).catch(() => setStkEnabled(false))
     setStep('payment')
   }
 
@@ -270,7 +273,7 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
             {method === 'mpesa' && (
               <div className="rounded-2xl border border-[#4CAF50]/30 overflow-hidden">
                 {/* 1 — STK push: the guest just enters their PIN */}
-                <div className="p-5 bg-[#4CAF50]/10">
+                {stkEnabled && <div className="p-5 bg-[#4CAF50]/10">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-xs uppercase tracking-widest text-forest font-semibold flex items-center gap-2"><Smartphone className="w-4 h-4" /> Pay with an M-Pesa prompt</div>
                     <span className="px-2 py-0.5 rounded-full bg-[#2e7d32] text-white text-[10px] uppercase tracking-widest font-bold">Fastest</span>
@@ -285,10 +288,10 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
                   </div>
                   {stk.state === 'waiting' && <div role="status" className="mt-3 text-sm text-forest flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin shrink-0" /> Check your phone and enter your M-Pesa PIN to pay {KSH(deposit)}…</div>}
                   {stk.state === 'failed' && <div role="alert" className="mt-3 text-sm text-clay font-medium">{stk.message}</div>}
-                </div>
+                </div>}
                 {/* 2 — Manual Buy Goods payment to the till */}
                 <div className="p-5 bg-white">
-                  <div className="text-xs uppercase tracking-widest text-earth font-semibold">Or pay manually · Buy Goods</div>
+                  <div className="text-xs uppercase tracking-widest text-earth font-semibold flex items-center gap-2">{stkEnabled ? 'Or pay manually · Buy Goods' : <><Smartphone className="w-4 h-4" /> Lipa na M-Pesa · Buy Goods</>}</div>
                   <div className="grid grid-cols-2 gap-3 mt-3 text-sm">
                     <div><div className="text-earth text-xs">Till number</div><div className="font-display text-2xl text-forest tracking-wider">{MPESA_TILL}</div></div>
                     <div><div className="text-earth text-xs">Amount</div><div className="font-display text-2xl text-forest">{KSH(deposit)}</div></div>
