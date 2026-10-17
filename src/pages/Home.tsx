@@ -216,8 +216,8 @@ export default function Home() {
             <Link to="/about" className="mt-8 inline-flex items-center gap-2 text-forest font-semibold hover:text-clay transition">Our story <ArrowRight className="w-4 h-4" /></Link>
           </div>
            <div className="relative h-[520px] md:h-[600px]">
-             <img loading="lazy" decoding="async" src="/hero/karibu-grounds.jpg" className="absolute right-0 top-0 w-[82%] h-[78%] rounded-[2rem] object-cover shadow-2xl" style={{ objectPosition: 'center 50%' }} alt="Palm-lined garden path between the guest blocks at Le Grande Haven" />
-             <img loading="lazy" decoding="async" src="/hero/hero-lush.jpg" className="absolute left-0 bottom-0 w-[55%] h-[48%] rounded-[2rem] object-cover shadow-2xl ring-8 ring-cream-50" style={{ objectPosition: 'center 60%' }} alt="Tropical gardens at Le Grande Haven" />
+             <img loading="lazy" decoding="async" src="/hero/hero-lush.jpg" className="absolute right-0 top-0 w-[82%] h-[78%] rounded-[2rem] object-cover shadow-2xl" style={{ objectPosition: 'center 60%' }} alt="Tropical gardens at Le Grande Haven" />
+             <img loading="lazy" decoding="async" src="/hero/karibu-grounds.jpg" className="absolute left-0 bottom-0 w-[55%] h-[48%] rounded-[2rem] object-cover shadow-2xl ring-8 ring-cream-50" style={{ objectPosition: 'center 50%' }} alt="Palm-lined garden path between the guest blocks at Le Grande Haven" />
              <div className="absolute right-4 bottom-6 bg-white rounded-2xl p-5 shadow-xl max-w-[15rem]">
               <div className="flex items-center gap-1 text-sand">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}</div>
               <p className="text-sm text-forest-deep mt-2 italic leading-relaxed">“A quiet, generous stay. The seafood is exceptional and the gardens are magical.”</p>
@@ -283,27 +283,59 @@ export default function Home() {
         </div>
       </section>
 
-      {/* DRINKS */}
-      <section className="py-24 bg-[#f3ede3]">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-12 gap-10 items-center">
-            <div className="lg:col-span-4">
-              <Eyebrow>The Bar</Eyebrow>
-              <h2 className="font-display text-4xl sm:text-5xl text-forest mt-4 leading-tight">Sundowners, mocktails &amp; everything in between.</h2>
-              <p className="text-earth mt-4">Cocktails, cold-pressed juices, single-origin coffee and Kenya’s finest teas. Every drink poured with care.</p>
-              <Link to="/drinks" className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-forest text-cream font-semibold hover:bg-forest-deep transition">See the Drinks <ArrowRight className="w-4 h-4" /></Link>
+      {/* THE BAR — warm "after dark" palette so it reads apart from the green kitchen section */}
+      <section className="relative py-24 md:py-28 bg-[#1b120d] text-cream overflow-hidden">
+        <img loading="lazy" decoding="async" src="/hero/hero-whiskies.jpg" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover opacity-[0.12] blur-[2px] scale-105" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_15%_10%,rgba(212,184,150,0.22),transparent_60%),radial-gradient(ellipse_60%_55%_at_90%_95%,rgba(184,101,74,0.28),transparent_65%)]" aria-hidden="true" />
+        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-sand/50 to-transparent" aria-hidden="true" />
+
+        <div className="relative max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-12 items-center">
+          <div className="lg:col-span-5">
+            <Eyebrow light>The Bar</Eyebrow>
+            <h2 className="font-display text-5xl sm:text-6xl mt-5 leading-[1.02]">Sundowners,<br /><em className="text-sand">poured with care.</em></h2>
+            <p className="text-cream/75 mt-5 text-lg leading-relaxed max-w-md">Ice-cold Kenyan beers, a whisky shelf worth the trip, fresh juices and proper coffee — served in the garden as the sun goes down.</p>
+
+            {/* Happy hour: the hook most likely to bring people in */}
+            <div className="mt-8 relative rounded-3xl p-[1px] bg-linear-to-r from-sand via-clay to-sand/40 max-w-md">
+              <div className="rounded-[calc(1.5rem-1px)] bg-[#24180f] px-5 py-4 flex items-center gap-4">
+                <span className="relative w-12 h-12 shrink-0 rounded-2xl bg-sand text-[#1b120d] grid place-items-center">
+                  <Beer className="w-6 h-6" />
+                  <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-clay ring-4 ring-[#24180f] animate-pulse" aria-hidden="true" />
+                </span>
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.3em] text-sand font-bold">Happy hour</div>
+                  <div className="font-display text-2xl leading-tight mt-0.5">Mon–Thu · 4–5 PM</div>
+                </div>
+              </div>
             </div>
-            <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-3 gap-4">
-              {drinks.length ? drinks.slice(0, 6).map(d => (
-                <Link to="/drinks" key={d.id} className="group rounded-[1.5rem] overflow-hidden bg-white shadow-[0_18px_40px_-28px_rgba(15,29,24,0.6)] hover:-translate-y-1 transition duration-500">
-                  <div className="h-56 md:h-64 bg-[radial-gradient(ellipse_at_50%_110%,#efe4d2_0%,#faf6ef_55%,#ffffff_100%)] flex items-end justify-center pt-5 overflow-hidden"><img src={d.image_url} alt={d.name} loading="lazy" decoding="async" className="h-full w-auto max-w-[85%] object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-700" /></div>
-                  <div className="p-4 flex items-start justify-between gap-2">
-                    <div><div className="text-[9px] uppercase tracking-[0.3em] text-earth">{d.category}</div><div className="font-display text-lg text-forest mt-1 leading-snug">{d.name}</div></div>
-                    <div className="text-sm text-clay font-semibold whitespace-nowrap">{KSH(d.price)}</div>
-                  </div>
-                </Link>
-              )) : Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-80 rounded-[1.5rem] bg-cream animate-pulse" />)}
+
+            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-cream/70">
+              <span className="inline-flex items-center gap-2"><Clock className="w-4 h-4 text-sand" /> Open daily till 11 PM</span>
+              <span className="inline-flex items-center gap-2"><Gamepad2 className="w-4 h-4 text-sand" /> Two pool tables</span>
+              <span className="inline-flex items-center gap-2"><Trees className="w-4 h-4 text-sand" /> Garden seating</span>
             </div>
+
+            <div className="mt-9 flex flex-wrap gap-3">
+              <Link to="/drinks" className="group px-7 py-4 rounded-full bg-sand text-[#1b120d] font-semibold hover:bg-cream transition inline-flex items-center gap-2 shadow-[0_12px_30px_-10px_rgba(212,184,150,0.6)]">See the drinks menu <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" /></Link>
+              <button onClick={openReservation} className="px-7 py-4 rounded-full border border-cream/25 text-cream font-semibold hover:bg-cream/10 transition">Reserve a table</button>
+            </div>
+          </div>
+
+          {/* Photo shelf: full-bleed drink shots, the first is the bartender's pick */}
+          <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-4">
+            {drinks.length ? drinks.slice(0, 5).map((d, i) => (
+              <Link to="/drinks" key={d.id} className={`group relative rounded-[1.75rem] overflow-hidden bg-[#2a1c13] ring-1 ring-sand/25 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.85)] hover:-translate-y-1.5 hover:ring-sand/70 transition duration-500 ${i === 0 ? 'row-span-2 min-h-80 md:min-h-[33rem]' : 'h-56 md:h-64'}`}>
+                <img src={d.image_url} alt={d.name} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-110" />
+                <div className="absolute inset-0 bg-linear-to-t from-[#1b120d] via-[#1b120d]/35 via-45% to-transparent" />
+                {i === 0 && <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sand text-[#1b120d] text-[10px] uppercase tracking-[0.2em] font-bold shadow"><Sparkles className="w-3 h-3" /> Bartender’s pick</span>}
+                {i > 0 && <span className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-[#1b120d]/80 backdrop-blur text-sand text-xs font-bold ring-1 ring-sand/30">{KSH(d.price)}</span>}
+                <div className="absolute inset-x-0 bottom-0 p-4 md:p-5 text-cream">
+                  <div className="text-[9px] uppercase tracking-[0.3em] text-sand">{d.category}</div>
+                  <div className={`font-display leading-tight mt-1 line-clamp-2 ${i === 0 ? 'text-2xl md:text-[1.7rem]' : 'text-lg'}`}>{d.name}</div>
+                  {i === 0 && <span className="mt-3 inline-block px-3 py-1 rounded-full bg-sand text-[#1b120d] text-sm font-bold">{KSH(d.price)}</span>}
+                </div>
+              </Link>
+            )) : Array.from({ length: 5 }).map((_, i) => <div key={i} className={`rounded-[1.75rem] bg-cream/5 animate-pulse ${i === 0 ? 'row-span-2 min-h-96' : 'h-56'}`} />)}
           </div>
         </div>
       </section>
