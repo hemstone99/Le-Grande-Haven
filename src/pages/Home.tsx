@@ -283,59 +283,61 @@ export default function Home() {
         </div>
       </section>
 
-      {/* THE BAR — warm "after dark" palette so it reads apart from the green kitchen section */}
-      <section className="relative py-24 md:py-28 bg-[#1b120d] text-cream overflow-hidden">
-        <img loading="lazy" decoding="async" src="/hero/hero-whiskies.jpg" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover opacity-[0.12] blur-[2px] scale-105" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_15%_10%,rgba(212,184,150,0.22),transparent_60%),radial-gradient(ellipse_60%_55%_at_90%_95%,rgba(184,101,74,0.28),transparent_65%)]" aria-hidden="true" />
-        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-sand/50 to-transparent" aria-hidden="true" />
+      {/* THE BAR — dark, gold-framed showcase of the drinks; offers live in the next section */}
+      <section className="relative py-24 md:py-32 bg-[#140d09] text-cream overflow-hidden">
+        <img loading="lazy" decoding="async" src="/hero/hero-whiskies.jpg" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover opacity-[0.08] blur-[3px] scale-105" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_50%_at_75%_45%,rgba(232,201,143,0.16),transparent_65%),radial-gradient(ellipse_45%_45%_at_10%_90%,rgba(184,101,74,0.18),transparent_65%)]" aria-hidden="true" />
+        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-[#e8c98f]/60 to-transparent" aria-hidden="true" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-[#e8c98f]/30 to-transparent" aria-hidden="true" />
 
-        <div className="relative max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-12 items-center">
+        <div className="relative max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+          {/* Side note — a short, hand-written-feeling welcome from the bar */}
           <div className="lg:col-span-5">
             <Eyebrow light>The Bar</Eyebrow>
-            <h2 className="font-display text-5xl sm:text-6xl mt-5 leading-[1.02]">Sundowners,<br /><em className="text-sand">poured with care.</em></h2>
-            <p className="text-cream/75 mt-5 text-lg leading-relaxed max-w-md">Ice-cold Kenyan beers, a whisky shelf worth the trip, fresh juices and proper coffee — served in the garden as the sun goes down.</p>
+            <h2 className="font-display text-5xl sm:text-6xl mt-5 leading-[1.02]">Raise a glass,<br /><em className="text-[#e8c98f]">stay a while.</em></h2>
 
-            {/* Happy hour: the hook most likely to bring people in */}
-            <div className="mt-8 relative rounded-3xl p-[1px] bg-linear-to-r from-sand via-clay to-sand/40 max-w-md">
-              <div className="rounded-[calc(1.5rem-1px)] bg-[#24180f] px-5 py-4 flex items-center gap-4">
-                <span className="relative w-12 h-12 shrink-0 rounded-2xl bg-sand text-[#1b120d] grid place-items-center">
-                  <Beer className="w-6 h-6" />
-                  <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-clay ring-4 ring-[#24180f] animate-pulse" aria-hidden="true" />
-                </span>
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.3em] text-sand font-bold">Happy hour</div>
-                  <div className="font-display text-2xl leading-tight mt-0.5">Mon–Thu · 4–5 PM</div>
-                </div>
+            <figure className="relative mt-10 rounded-[1.75rem] p-px bg-linear-to-br from-[#e8c98f]/70 via-[#e8c98f]/15 to-[#e8c98f]/50 max-w-md">
+              <div className="relative rounded-[calc(1.75rem-1px)] bg-[#1b120d]/90 backdrop-blur px-7 py-8 md:px-9">
+                <span className="absolute -top-5 left-8 font-display text-7xl leading-none text-[#e8c98f]/80 select-none" aria-hidden="true">“</span>
+                <blockquote className="font-display italic text-xl md:text-2xl leading-relaxed text-cream/90">
+                  A slow pour of single malt, a beer so cold it fogs the glass, a juice pressed this morning. Tell us how you take it — we’ll bring it to you in the garden, just as the light turns gold.
+                </blockquote>
+                <figcaption className="mt-6 flex items-center gap-3">
+                  <span className="h-px w-10 bg-[#e8c98f]/60" />
+                  <span className="text-[11px] uppercase tracking-[0.35em] text-[#e8c98f]">From the bar at the Haven</span>
+                </figcaption>
               </div>
-            </div>
+            </figure>
 
-            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-cream/70">
-              <span className="inline-flex items-center gap-2"><Clock className="w-4 h-4 text-sand" /> Open daily till 11 PM</span>
-              <span className="inline-flex items-center gap-2"><Gamepad2 className="w-4 h-4 text-sand" /> Two pool tables</span>
-              <span className="inline-flex items-center gap-2"><Trees className="w-4 h-4 text-sand" /> Garden seating</span>
-            </div>
-
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Link to="/drinks" className="group px-7 py-4 rounded-full bg-sand text-[#1b120d] font-semibold hover:bg-cream transition inline-flex items-center gap-2 shadow-[0_12px_30px_-10px_rgba(212,184,150,0.6)]">See the drinks menu <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" /></Link>
-              <button onClick={openReservation} className="px-7 py-4 rounded-full border border-cream/25 text-cream font-semibold hover:bg-cream/10 transition">Reserve a table</button>
+            <div className="mt-10 flex flex-wrap gap-3">
+              <Link to="/drinks" className="group px-7 py-4 rounded-full bg-linear-to-r from-[#e8c98f] to-sand text-[#140d09] font-semibold hover:brightness-110 transition inline-flex items-center gap-2 shadow-[0_14px_34px_-12px_rgba(232,201,143,0.65)]">Explore the drinks menu <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" /></Link>
+              <button onClick={openReservation} className="px-7 py-4 rounded-full border border-[#e8c98f]/35 text-cream font-semibold hover:bg-[#e8c98f]/10 transition">Reserve a table</button>
             </div>
           </div>
 
-          {/* Photo shelf: full-bleed drink shots, the first is the bartender's pick */}
-          <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-4">
+          {/* Gold-framed drinks gallery; the first is the bartender's pick */}
+          <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
             {drinks.length ? drinks.slice(0, 5).map((d, i) => (
-              <Link to="/drinks" key={d.id} className={`group relative rounded-[1.75rem] overflow-hidden bg-[#2a1c13] ring-1 ring-sand/25 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.85)] hover:-translate-y-1.5 hover:ring-sand/70 transition duration-500 ${i === 0 ? 'row-span-2 min-h-80 md:min-h-[33rem]' : 'h-56 md:h-64'}`}>
-                <img src={d.image_url} alt={d.name} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-linear-to-t from-[#1b120d] via-[#1b120d]/35 via-45% to-transparent" />
-                {i === 0 && <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sand text-[#1b120d] text-[10px] uppercase tracking-[0.2em] font-bold shadow"><Sparkles className="w-3 h-3" /> Bartender’s pick</span>}
-                {i > 0 && <span className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-[#1b120d]/80 backdrop-blur text-sand text-xs font-bold ring-1 ring-sand/30">{KSH(d.price)}</span>}
-                <div className="absolute inset-x-0 bottom-0 p-4 md:p-5 text-cream">
-                  <div className="text-[9px] uppercase tracking-[0.3em] text-sand">{d.category}</div>
-                  <div className={`font-display leading-tight mt-1 line-clamp-2 ${i === 0 ? 'text-2xl md:text-[1.7rem]' : 'text-lg'}`}>{d.name}</div>
-                  {i === 0 && <span className="mt-3 inline-block px-3 py-1 rounded-full bg-sand text-[#1b120d] text-sm font-bold">{KSH(d.price)}</span>}
+              <Link to="/drinks" key={d.id} className={`group relative rounded-[1.75rem] p-px bg-linear-to-b from-[#e8c98f]/90 via-[#e8c98f]/20 to-[#e8c98f]/60 shadow-[0_40px_70px_-40px_rgba(0,0,0,0.95)] hover:shadow-[0_40px_80px_-30px_rgba(232,201,143,0.35)] hover:-translate-y-1.5 transition duration-700 ${i === 0 ? 'row-span-2 min-h-80 md:min-h-[34rem]' : 'h-60 md:h-64'}`}>
+                <div className="relative h-full rounded-[calc(1.75rem-1px)] overflow-hidden bg-[#1b120d]">
+                  <img src={d.image_url} alt={d.name} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover transition duration-[1400ms] ease-out group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-linear-to-t from-[#140d09] via-[#140d09]/45 via-40% to-[#140d09]/5" />
+                  {/* Light sweeping across the glass on hover */}
+                  <span className="pointer-events-none absolute -inset-y-4 -left-1/2 w-1/3 -skew-x-12 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-[420%] transition-transform duration-[1300ms] ease-out" aria-hidden="true" />
+                  {/* Inner gold hairline frame */}
+                  <span className="pointer-events-none absolute inset-2 rounded-[1.35rem] ring-1 ring-[#e8c98f]/25 group-hover:ring-[#e8c98f]/50 transition" aria-hidden="true" />
+                  {i === 0 && <span className="absolute top-4 left-4 md:top-5 md:left-5 inline-flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 rounded-full bg-linear-to-r from-[#e8c98f] to-sand text-[#140d09] text-[9px] md:text-[10px] uppercase tracking-[0.15em] md:tracking-[0.25em] font-bold shadow-lg whitespace-nowrap"><Star className="w-3 h-3 fill-current" /> Bartender’s pick</span>}
+                  <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
+                    <div className="text-[9px] uppercase tracking-[0.35em] text-[#e8c98f]">{d.category}</div>
+                    <div className={`font-display leading-tight mt-1.5 ${i === 0 ? 'text-xl md:text-[1.65rem] line-clamp-3' : 'text-lg line-clamp-2'}`}>{d.name}</div>
+                    <div className="mt-3 flex items-center gap-3">
+                      <span className="h-px flex-1 bg-linear-to-r from-[#e8c98f]/60 to-transparent" />
+                      <span className={`font-display text-[#e8c98f] ${i === 0 ? 'text-2xl' : 'text-base'}`}>{KSH(d.price)}</span>
+                    </div>
+                  </div>
                 </div>
               </Link>
-            )) : Array.from({ length: 5 }).map((_, i) => <div key={i} className={`rounded-[1.75rem] bg-cream/5 animate-pulse ${i === 0 ? 'row-span-2 min-h-96' : 'h-56'}`} />)}
+            )) : Array.from({ length: 5 }).map((_, i) => <div key={i} className={`rounded-[1.75rem] bg-[#e8c98f]/5 animate-pulse ${i === 0 ? 'row-span-2 min-h-96' : 'h-60'}`} />)}
           </div>
         </div>
       </section>
