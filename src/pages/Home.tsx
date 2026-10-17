@@ -216,7 +216,7 @@ export default function Home() {
             <Link to="/about" className="mt-8 inline-flex items-center gap-2 text-forest font-semibold hover:text-clay transition">Our story <ArrowRight className="w-4 h-4" /></Link>
           </div>
            <div className="relative h-[520px] md:h-[600px]">
-             <img loading="lazy" decoding="async" src="/hero/karibu.jpg" className="absolute right-0 top-0 w-[82%] h-[78%] rounded-[2rem] object-cover shadow-2xl" style={{ objectPosition: 'center 55%' }} alt="Guests enjoying drinks in the Le Grande Haven garden" />
+             <img loading="lazy" decoding="async" src="/hero/karibu-grounds.jpg" className="absolute right-0 top-0 w-[82%] h-[78%] rounded-[2rem] object-cover shadow-2xl" style={{ objectPosition: 'center 50%' }} alt="Palm-lined garden path between the guest blocks at Le Grande Haven" />
              <img loading="lazy" decoding="async" src="/hero/hero-lush.jpg" className="absolute left-0 bottom-0 w-[55%] h-[48%] rounded-[2rem] object-cover shadow-2xl ring-8 ring-cream-50" style={{ objectPosition: 'center 60%' }} alt="Tropical gardens at Le Grande Haven" />
              <div className="absolute right-4 bottom-6 bg-white rounded-2xl p-5 shadow-xl max-w-[15rem]">
               <div className="flex items-center gap-1 text-sand">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}</div>
