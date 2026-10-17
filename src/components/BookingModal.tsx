@@ -1,9 +1,12 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { X, Loader2, Check, Calendar, Users, Smartphone, Landmark, Banknote, ShieldCheck } from 'lucide-react'
-import { KSH, daysBetween, guestsLabel } from '../lib/format'
+import { KSH, daysBetween, guestsLabel, shortDate } from '../lib/format'
+import { findClash, firstFreeDate, roomsChanged, type BookedRange } from '../lib/roomsData'
 import { useToast } from '../contexts/ToastContext'
 
-type Room = { id: string; name: string; price_per_night: number; guests: number }
+type Room = { id: string; name: string; price_per_night: number; guests: number; available: boolean; booked?: BookedRange[] }
+
+const addDays = (ymd: string, n: number) => new Date(Date.parse(ymd + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10)
 type Method = 'mpesa' | 'bank' | 'cash'
 
 export default function BookingModal({ open, onClose, rooms, preselectedRoomId }: { open: boolean; onClose: () => void; rooms: Room[]; preselectedRoomId?: string }) {
@@ -22,18 +25,28 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
   const [payRef, setPayRef] = useState('')
   const [confirmed, setConfirmed] = useState(false)
 
-  useEffect(() => {
+  // Reset when the modal opens (or the room list first arrives) — not whenever
+  // rooms refresh, which happens right after a booking and would wipe the
+  // confirmation screen.
+  const session = open ? `${preselectedRoomId ?? ''}|${rooms.length > 0}` : null
+  const [lastSession, setLastSession] = useState<string | null>(null)
+  if (session !== lastSession) {
+    setLastSession(session)
     if (open) {
       setStep('form')
       setForm(f => {
-        const room_id = preselectedRoomId || rooms[0]?.id || f.room_id
-        return { ...f, room_id, guests: Math.min(f.guests, rooms.find(r => r.id === room_id)?.guests || f.guests) }
+        const room_id = preselectedRoomId || rooms.find(r => r.available)?.id || f.room_id
+        const r = rooms.find(x => x.id === room_id)
+        // A room that's taken tonight opens on its first free night
+        const check_in = firstFreeDate(r?.booked, f.check_in < today ? today : f.check_in)
+        const check_out = check_in !== f.check_in || f.check_out <= check_in ? addDays(check_in, 1) : f.check_out
+        return { ...f, room_id, check_in, check_out, guests: Math.min(f.guests, r?.guests || f.guests) }
       })
       setPayRef('')
       setConfirmed(false)
       setMethod('mpesa')
     }
-  }, [open, preselectedRoomId, rooms])
+  }
 
   if (!open) return null
 
@@ -42,11 +55,15 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
   const total = room ? Number(room.price_per_night) * nights : 0
   const deposit = Math.round(total / 2)
   const balance = total - deposit
+  const clash = findClash(room?.booked, form.check_in, form.check_out)
+  const jumpToFreeDates = () => setForm(f => { const check_in = firstFreeDate(room?.booked, f.check_in); return { ...f, check_in, check_out: addDays(check_in, Math.max(1, nights)) } })
 
   const goToPayment = (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.room_id || !form.guest_name || !form.phone || !form.check_in || !form.check_out) { push('Please fill all required fields', 'error'); return }
     if (new Date(form.check_out) <= new Date(form.check_in)) { push('Check-out must be after check-in', 'error'); return }
+    if (room && !room.available) { push(`${room.name} isn’t taking bookings right now — please choose another room`, 'error'); return }
+    if (room && clash) { push(`${room.name} is already booked ${shortDate(clash.from)} – ${shortDate(clash.to)}. Please choose other dates or another room.`, 'error'); return }
     if (room && form.guests > room.guests) { push(`${room.name} sleeps ${guestsLabel(room.guests)} — please book another room for the rest of your group`, 'error'); return }
     setStep('payment')
   }
@@ -61,7 +78,15 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
     try {
       const res = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, special_requests: merged }) })
       const data = await res.json()
+      if (res.status === 409) {
+        // Someone else took these dates since the form opened: refresh and let the guest re-pick
+        roomsChanged()
+        setStep('form')
+        push(`${room?.name ?? 'This room'} was just booked for those dates — please choose other dates.`, 'error')
+        return
+      }
       if (!res.ok) throw new Error(data.error || 'Booking failed')
+      roomsChanged()
       setStep('success')
       push('Booking received. We will confirm shortly.', 'success')
     } catch (err) {
@@ -107,7 +132,7 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
               <label className="text-xs uppercase tracking-widest text-earth">Choose a Room</label>
               {/* Switching to a smaller room drops the guest count to what it sleeps */}
               <select value={form.room_id} onChange={e => { const next = rooms.find(r => r.id === e.target.value); setForm(f => ({ ...f, room_id: e.target.value, guests: Math.min(f.guests, next?.guests || f.guests) })) }} className="mt-2 w-full px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none">
-                {rooms.map(r => <option key={r.id} value={r.id}>{r.name} — {KSH(r.price_per_night)} / night · sleeps {r.guests}</option>)}
+                {rooms.map(r => <option key={r.id} value={r.id} disabled={!r.available}>{r.name} — {KSH(r.price_per_night)} / night · sleeps {r.guests}{!r.available && ' · unavailable'}</option>)}
               </select>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -118,6 +143,14 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
               <div><label className="text-xs uppercase tracking-widest text-earth"><Calendar className="w-3 h-3 inline mr-1" />Check-out</label><input type="date" min={form.check_in} value={form.check_out} onChange={e => setForm(f => ({ ...f, check_out: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none" /></div>
               <div><label className="text-xs uppercase tracking-widest text-earth"><Users className="w-3 h-3 inline mr-1" />Guests</label><input type="number" min={1} max={room?.guests || 2} value={form.guests} onChange={e => setForm(f => ({ ...f, guests: Math.min(Math.max(1, parseInt(e.target.value) || 1), room?.guests || 2) }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none" />{room && <p className="mt-1.5 text-xs text-earth">{room.guests === 1 ? 'Single room — one guest only.' : `One bed, up to ${guestsLabel(room.guests)}.`}</p>}</div>
             </div>
+            {room && clash ? (
+              <div className="p-4 rounded-xl bg-clay/10 border border-clay/30 text-sm text-forest-deep flex flex-wrap items-center gap-x-4 gap-y-2" role="alert">
+                <span><strong>{room.name} is already booked</strong> {shortDate(clash.from)} – {shortDate(clash.to)}. Choose other dates or another room.</span>
+                <button type="button" onClick={jumpToFreeDates} className="font-semibold text-clay underline underline-offset-2">Book from {shortDate(firstFreeDate(room.booked, form.check_in))}</button>
+              </div>
+            ) : room?.booked?.length ? (
+              <p className="text-xs text-earth">Already booked: {room.booked.map(b => `${shortDate(b.from)} – ${shortDate(b.to)}`).join(', ')}</p>
+            ) : null}
             <div><label className="text-xs uppercase tracking-widest text-earth">Special requests</label><textarea value={form.special_requests} onChange={e => setForm(f => ({ ...f, special_requests: e.target.value }))} rows={3} className="mt-2 w-full px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none resize-none" placeholder="Late arrival, dietary preferences, celebrations..." /></div>
 
             <div className="rounded-2xl bg-forest/5 p-5 flex items-center justify-between">

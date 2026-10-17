@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Users, Bed, Check, Wifi, Bath, Coffee, ShieldCheck, Sparkles, MapPin, Phone, MessageCircle } from 'lucide-react'
-import { KSH, guestsLabel } from '../lib/format'
+import { KSH, guestsLabel, shortDate } from '../lib/format'
 import { useBooking } from '../components/BookingContext'
-import { fetchRoomsWithFallback } from '../lib/roomsData'
+import { fetchRoomsWithFallback, onRoomsChanged, type BookedRange } from '../lib/roomsData'
 
-type Room = { id: string; slug: string; name: string; description: string; short_description: string; room_type: string; guests: number; bed_config: string; price_per_night: number; amenities: string[]; available: boolean; images?: { url: string }[] }
+type Room = { id: string; slug: string; name: string; description: string; short_description: string; room_type: string; guests: number; bed_config: string; price_per_night: number; amenities: string[]; available: boolean; images?: { url: string }[]; booked?: BookedRange[]; booked_until?: string | null }
 
 export default function RoomDetail() {
   const { slug } = useParams()
@@ -17,14 +17,16 @@ export default function RoomDetail() {
 
   useEffect(() => {
     setLoading(true)
-    fetchRoomsWithFallback().then(d => {
+    const load = () => fetchRoomsWithFallback().then(d => {
       const rows = d as unknown as Room[]
       const found = rows.find(r => r.slug === slug) || null
       setRoom(found)
       setOthers(rows.filter(r => r.slug !== slug).slice(0, 3))
       setLoading(false)
     })
+    load()
     setActive(0)
+    return onRoomsChanged(load)
   }, [slug])
 
   if (loading) return <div className="min-h-screen grid place-items-center bg-cream-50"><div className="font-display text-3xl text-forest animate-pulse">Loading...</div></div>
@@ -73,7 +75,9 @@ export default function RoomDetail() {
               <span className="font-display text-4xl text-forest">{KSH(room.price_per_night)}</span>
               <span className="text-earth">/ night</span>
               <span className="ml-2 text-[10px] uppercase tracking-widest text-clay font-semibold">Bed &amp; breakfast</span>
-              {room.available ? <span className="ml-auto px-3 py-1 rounded-full bg-forest/10 text-forest text-xs font-semibold">Available</span> : <span className="ml-auto px-3 py-1 rounded-full bg-clay/10 text-clay text-xs font-semibold">Currently Booked</span>}
+              {room.available && !room.booked_until
+                ? <span className="ml-auto px-3 py-1 rounded-full bg-forest/10 text-forest text-xs font-semibold">Available</span>
+                : <span className="ml-auto px-3 py-1 rounded-full bg-clay/10 text-clay text-xs font-semibold">{room.available && room.booked_until ? `Booked until ${shortDate(room.booked_until)}` : 'Currently Booked'}</span>}
             </div>
             <div className="hairline my-6" />
             <p className="text-earth leading-relaxed">{room.description}</p>
@@ -86,7 +90,8 @@ export default function RoomDetail() {
                 ? `A single room — the bed is sized for one guest only. Travelling with someone? Book them a room of their own.`
                 : `One ${room.bed_config.toLowerCase()} for up to ${guestsLabel(room.guests)}. For a larger group, book an extra room.`}
             </p>
-            <button onClick={() => openBooking(room.id)} className="mt-6 w-full px-7 py-4 rounded-full bg-forest text-cream font-semibold hover:bg-forest-deep transition text-lg">Book This Room</button>
+            <button onClick={() => openBooking(room.id)} disabled={!room.available} className="mt-6 w-full px-7 py-4 rounded-full bg-forest text-cream font-semibold hover:bg-forest-deep transition text-lg disabled:opacity-50 disabled:cursor-not-allowed">{room.available && room.booked_until ? `Book from ${shortDate(room.booked_until)}` : 'Book This Room'}</button>
+            {room.available && room.booked?.length ? <p className="mt-2 text-xs text-earth text-center">Already booked: {room.booked.map(b => `${shortDate(b.from)} – ${shortDate(b.to)}`).join(', ')}</p> : null}
             <div className="grid grid-cols-3 gap-2 mt-3">
               <a href="tel:+254182219969" className="px-3 py-3 rounded-full border border-forest/20 text-forest text-xs font-semibold hover:bg-forest/5 flex items-center justify-center gap-2"><Phone className="w-4 h-4" /> Call</a>
               <a href="https://wa.me/254182219969" className="px-3 py-3 rounded-full border border-forest/20 text-forest text-xs font-semibold hover:bg-forest/5 flex items-center justify-center gap-2"><MessageCircle className="w-4 h-4" /> WhatsApp</a>

@@ -2,18 +2,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Phone, Users, BedDouble, Bath, ArrowRight, Minus, Plus, Star, Coffee, Wifi, Tv, Car, Sparkles, ShowerHead, KeyRound, ConciergeBell, LayoutGrid, Bed, Crown, BedSingle, Gem, SearchX, Clock, ShieldCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { KSH, guestsLabel } from '../lib/format'
+import { KSH, guestsLabel, shortDate } from '../lib/format'
 import { useBooking } from '../components/BookingContext'
 import { CardSkeleton } from '../components/Skeleton'
 import { BrandTile, IconTile, TILE_BG } from '../components/BrandIcons'
-import { fetchRoomsWithFallback } from '../lib/roomsData'
+import { fetchRoomsWithFallback, onRoomsChanged } from '../lib/roomsData'
 import { whatsappLink, PHONE_TEL, PHONE_DISPLAY } from '../lib/contact'
 import HeroWave from '../components/HeroWave'
 
 type Room = {
   id: string; slug: string; name: string; short_description: string; room_type: string; guests: number
   bed_config: string; price_per_night: number; amenities: string[]; available: boolean; featured: boolean
-  sort_order?: number; images?: { url: string }[]
+  sort_order?: number; images?: { url: string }[]; booked_until?: string | null
 }
 
 const TYPE_ORDER = ['Single', 'Standard', 'Deluxe', 'Suite']
@@ -38,6 +38,9 @@ function RoomCard({ room, onBook }: { room: Room; onBook: (id: string) => void }
   const [main, alt] = [room.images?.[0]?.url || '/hero/hero-5.jpg', room.images?.[1]?.url]
   const highlights = HIGHLIGHTS.filter(h => room.amenities?.includes(h)).slice(0, 3)
   const extra = (room.amenities?.length || 0) - highlights.length
+  // Taken tonight by a booking, but still bookable for later dates
+  const bookedUntil = room.available ? room.booked_until : null
+  const free = room.available && !bookedUntil
   return (
     <article className={`group rounded-[1.75rem] overflow-hidden bg-white border border-forest/5 shadow-[0_18px_40px_-30px_rgba(15,29,24,0.45)] hover:shadow-[0_30px_60px_-30px_rgba(15,29,24,0.55)] hover:-translate-y-1 transition duration-500 flex flex-col ${room.available ? '' : 'opacity-70'}`}>
       <Link to={`/rooms/${room.slug}`} className="relative block aspect-[4/3] overflow-hidden" aria-label={`View ${room.name}`}>
@@ -47,7 +50,7 @@ function RoomCard({ room, onBook }: { room: Room; onBook: (id: string) => void }
         <div className="absolute inset-0 bg-linear-to-t from-forest-deep/90 via-forest-deep/25 via-45% to-forest-deep/10" />
         <div className="absolute top-4 left-4 right-4 flex justify-between gap-2">
           {room.featured ? <span className="px-3 py-1 rounded-full bg-white/95 text-forest text-[10px] uppercase tracking-widest font-bold flex items-center gap-1 shadow"><Star className="w-3 h-3 fill-clay text-clay" /> Guest favourite</span> : <span />}
-          <span className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold shadow ${room.available ? 'bg-emerald-500/90 text-white' : 'bg-clay text-cream'}`}>{room.available ? 'Available' : 'Booked'}</span>
+          <span className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold shadow ${free ? 'bg-emerald-500/90 text-white' : 'bg-clay text-cream'}`}>{free ? 'Available' : bookedUntil ? `Booked · until ${shortDate(bookedUntil)}` : 'Booked'}</span>
         </div>
         <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between text-cream [text-shadow:0_1px_12px_rgba(0,0,0,0.45)]">
           <div>
@@ -74,7 +77,7 @@ function RoomCard({ room, onBook }: { room: Room; onBook: (id: string) => void }
         </div>
         <div className="flex items-center gap-2 mt-auto pt-6">
           <Link to={`/rooms/${room.slug}`} className="flex-1 px-4 py-3 rounded-full border border-forest/15 text-forest text-sm font-semibold hover:bg-forest/5 transition flex items-center justify-center gap-1.5">Details <ArrowRight className="w-4 h-4" /></Link>
-          <button onClick={() => onBook(room.id)} disabled={!room.available} className="flex-1 px-4 py-3 rounded-full bg-forest text-cream text-sm font-semibold hover:bg-forest-deep transition disabled:opacity-50 disabled:cursor-not-allowed">Book now</button>
+          <button onClick={() => onBook(room.id)} disabled={!room.available} className="flex-1 px-4 py-3 rounded-full bg-forest text-cream text-sm font-semibold hover:bg-forest-deep transition disabled:opacity-50 disabled:cursor-not-allowed">{bookedUntil ? `Book from ${shortDate(bookedUntil)}` : 'Book now'}</button>
         </div>
       </div>
     </article>
@@ -90,7 +93,11 @@ export default function RoomsPage() {
   const [sort, setSort] = useState<Sort>('recommended')
   const [availableOnly, setAvailableOnly] = useState(false)
 
-  useEffect(() => { fetchRoomsWithFallback().then(d => { setRooms(d as unknown as Room[]); setLoading(false) }) }, [])
+  useEffect(() => {
+    const load = () => fetchRoomsWithFallback().then(d => { setRooms(d as unknown as Room[]); setLoading(false) })
+    load()
+    return onRoomsChanged(load)
+  }, [])
 
   const types = useMemo(() => {
     const present = Array.from(new Set(rooms.map(r => r.room_type)))
@@ -101,7 +108,7 @@ export default function RoomsPage() {
   const singleRooms = rooms.filter(r => r.guests === 1).map(r => r.name)
 
   const visible = useMemo(() => {
-    const list = rooms.filter(r => (type === 'All' || r.room_type === type) && r.guests >= guests && (!availableOnly || r.available))
+    const list = rooms.filter(r => (type === 'All' || r.room_type === type) && r.guests >= guests && (!availableOnly || (r.available && !r.booked_until)))
     const by: Record<Sort, (a: Room, b: Room) => number> = {
       recommended: (a, b) => Number(b.featured) - Number(a.featured) || (a.sort_order ?? 0) - (b.sort_order ?? 0),
       'price-asc': (a, b) => a.price_per_night - b.price_per_night,

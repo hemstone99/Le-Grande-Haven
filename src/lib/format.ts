@@ -20,6 +20,10 @@ export const daysBetween = (a: string, b: string) => {
   return Math.max(1, Math.round((d2 - d1) / 86400000))
 }
 
+// '2026-10-20' → '20 Oct', read as a calendar date (no timezone shift)
+export const shortDate = (ymd: string) =>
+  new Date(ymd + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+
 export const guestsLabel = (n: number) => `${n} guest${n === 1 ? '' : 's'}`
 
 export const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')

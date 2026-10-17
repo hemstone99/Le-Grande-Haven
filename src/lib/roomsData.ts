@@ -17,6 +17,23 @@ export type FallbackRoom = {
   available: boolean
   featured: boolean
   images: { url: string }[]
+  // From /api/rooms only: upcoming bookings (check-in inclusive, check-out
+  // exclusive) and, if the room is taken tonight, the date it's free again
+  booked?: BookedRange[]
+  booked_until?: string | null
+}
+
+export type BookedRange = { from: string; to: string }
+
+// The stay [checkIn, checkOut) clashes with a booking, if any (dates are YYYY-MM-DD)
+export const findClash = (booked: BookedRange[] | undefined, checkIn: string, checkOut: string) =>
+  booked?.find(b => b.from < checkOut && b.to > checkIn)
+
+// First night on/after `date` that isn't inside a booking
+export function firstFreeDate(booked: BookedRange[] | undefined, date: string) {
+  let d = date
+  for (const b of booked || []) if (b.from <= d && b.to > d) d = b.to
+  return d
 }
 
 export const FALLBACK_ROOMS: FallbackRoom[] = [
@@ -234,4 +251,18 @@ export function fetchRoomsWithFallback(): Promise<FallbackRoom[]> {
   })()
   roomsRequest = { at: Date.now(), promise }
   return promise
+}
+
+// After a booking, drop the cached rooms and tell open pages to refetch so the
+// room's tag switches to Booked straight away.
+const roomsListeners = new Set<() => void>()
+
+export function roomsChanged() {
+  roomsRequest = null
+  roomsListeners.forEach(fn => fn())
+}
+
+export function onRoomsChanged(fn: () => void) {
+  roomsListeners.add(fn)
+  return () => { roomsListeners.delete(fn) }
 }
