@@ -197,6 +197,22 @@ const SCHEMA = [
     password_hash VARCHAR(255) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+  `CREATE TABLE IF NOT EXISTS mpesa_payments (
+    id CHAR(36) PRIMARY KEY,
+    booking_id CHAR(36) NOT NULL,
+    checkout_request_id VARCHAR(100) NOT NULL UNIQUE,
+    merchant_request_id VARCHAR(100),
+    phone VARCHAR(20) NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    status ENUM('pending','paid','failed') DEFAULT 'pending',
+    result_code INT,
+    result_desc VARCHAR(255),
+    receipt VARCHAR(50),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX (booking_id),
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
   `CREATE TABLE IF NOT EXISTS app_migrations (
     name VARCHAR(191) PRIMARY KEY,
     ran_at DATETIME DEFAULT CURRENT_TIMESTAMP

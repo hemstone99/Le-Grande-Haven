@@ -4,6 +4,9 @@ export const PHONE_DISPLAY = '0182 219 969'
 export const PHONE_TEL = 'tel:+254182219969'
 export const EMAIL = 'legrandehavenltd@gmail.com'
 
+// Lipa na M-Pesa — Buy Goods and Services
+export const MPESA_TILL = '4323604'
+
 export const whatsappLink = (message = 'Hello Le Grande Haven') =>
   `https://wa.me/254182219969?text=${encodeURIComponent(message)}`
 

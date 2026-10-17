@@ -1,8 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { X, Loader2, Check, Calendar, Users, Smartphone, Landmark, Banknote, ShieldCheck } from 'lucide-react'
 import { KSH, daysBetween, guestsLabel, shortDate } from '../lib/format'
 import { findClash, firstFreeDate, roomsChanged, type BookedRange } from '../lib/roomsData'
+import { MPESA_TILL } from '../lib/contact'
 import { useToast } from '../contexts/ToastContext'
+
+type Stk = { state: 'idle' | 'sending' | 'waiting' | 'paid' | 'failed'; message?: string; receipt?: string | null }
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 type Room = { id: string; name: string; price_per_night: number; guests: number; available: boolean; booked?: BookedRange[] }
 
@@ -24,6 +28,13 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
   const [method, setMethod] = useState<Method>('mpesa')
   const [payRef, setPayRef] = useState('')
   const [confirmed, setConfirmed] = useState(false)
+  // Set once the booking exists on the server (the STK prompt needs it first)
+  const [bookingId, setBookingId] = useState<string | null>(null)
+  const [mpesaPhone, setMpesaPhone] = useState('')
+  const [stk, setStk] = useState<Stk>({ state: 'idle' })
+  // Bumped on close so a running status poll stops
+  const pollRun = useRef(0)
+  const close = () => { pollRun.current++; onClose() }
 
   // Reset when the modal opens (or the room list first arrives) — not whenever
   // rooms refresh, which happens right after a booking and would wipe the
@@ -45,6 +56,9 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
       setPayRef('')
       setConfirmed(false)
       setMethod('mpesa')
+      setBookingId(null)
+      setMpesaPhone('')
+      setStk({ state: 'idle' })
     }
   }
 
@@ -65,28 +79,73 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
     if (room && !room.available) { push(`${room.name} isn’t taking bookings right now — please choose another room`, 'error'); return }
     if (room && clash) { push(`${room.name} is already booked ${shortDate(clash.from)} – ${shortDate(clash.to)}. Please choose other dates or another room.`, 'error'); return }
     if (room && form.guests > room.guests) { push(`${room.name} sleeps ${guestsLabel(room.guests)} — please book another room for the rest of your group`, 'error'); return }
+    setMpesaPhone(p => p || form.phone)
     setStep('payment')
   }
 
+  // Creates the booking (held as pending). Returns its id, or null if the dates were just taken.
+  const createBooking = async (paymentNote: string) => {
+    const merged = [paymentNote, form.special_requests].filter(Boolean).join('\n')
+    const res = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, special_requests: merged }) })
+    const data = await res.json().catch(() => ({}))
+    if (res.status === 409) {
+      // Someone else took these dates since the form opened: refresh and let the guest re-pick
+      roomsChanged()
+      setStep('form')
+      push(`${room?.name ?? 'This room'} was just booked for those dates — please choose other dates.`, 'error')
+      return null
+    }
+    if (!res.ok) throw new Error(data.error || `Booking failed (${res.status})`)
+    setBookingId(data.id)
+    roomsChanged()
+    return data.id as string
+  }
+
+  // Lipa na M-Pesa Online: hold the booking, send the PIN prompt, then wait for Safaricom's result
+  const payWithPrompt = async () => {
+    if (!/^(\+?254|0)?[17]\d{8}$/.test(mpesaPhone.replace(/\s/g, ''))) { setStk({ state: 'failed', message: 'Enter a valid Safaricom number, e.g. 0712 345 678' }); return }
+    setStk({ state: 'sending' })
+    const run = ++pollRun.current
+    try {
+      const id = bookingId ?? await createBooking(`[PAYMENT] Method: M-Pesa prompt | Total: ${KSH(total)} | Deposit due (50%): ${KSH(deposit)} | Balance on arrival: ${KSH(balance)}`)
+      if (!id) { setStk({ state: 'idle' }); return }
+      const res = await fetch('/api/mpesa/stk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ booking_id: id, phone: mpesaPhone }) })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setStk({ state: 'failed', message: data.error || 'Couldn’t send the M-Pesa prompt — please try again or pay to the till below.' }); return }
+      setStk({ state: 'waiting' })
+      for (let i = 0; i < 30; i++) {
+        await sleep(3000)
+        if (run !== pollRun.current) return
+        const s = await fetch(`/api/mpesa/status?id=${encodeURIComponent(data.checkout_id)}`).then(r => r.json()).catch(() => null)
+        if (s?.status === 'paid') {
+          setStk({ state: 'paid', receipt: s.receipt })
+          setStep('success')
+          push('Deposit received — thank you!', 'success')
+          return
+        }
+        if (s?.status === 'failed') { setStk({ state: 'failed', message: s.message }); return }
+      }
+      setStk({ state: 'failed', message: 'No confirmation yet. If you entered your PIN we’ll still receive it — or pay to the till below and enter the code.' })
+    } catch (err) {
+      setStk({ state: 'failed', message: err instanceof Error ? err.message : 'Something went wrong — please try again.' })
+    }
+  }
+
   const submitBooking = async () => {
-    if (method !== 'cash' && !payRef.trim()) { push('Please enter your payment reference', 'error'); return }
+    if (method !== 'cash' && !payRef.trim()) { push(method === 'mpesa' ? 'Enter the M-Pesa confirmation code from your SMS' : 'Please enter your payment reference', 'error'); return }
     if (method === 'cash' && !confirmed) { push('Please confirm you agree to pay on arrival', 'error'); return }
     setSubmitting(true)
-    const label = method === 'mpesa' ? 'M-Pesa' : method === 'bank' ? 'Bank Transfer' : 'Cash on Arrival'
-    const paymentNote = `[PAYMENT] Method: ${label} | Total: ${KSH(total)} | Deposit paid (50%): ${method === 'cash' ? KSH(0) : KSH(deposit)} | Balance on arrival: ${method === 'cash' ? KSH(total) : KSH(balance)}${method !== 'cash' && payRef ? ` | Ref: ${payRef.trim()}` : ''}`
-    const merged = [paymentNote, form.special_requests].filter(Boolean).join('\n')
     try {
-      const res = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, special_requests: merged }) })
-      const data = await res.json()
-      if (res.status === 409) {
-        // Someone else took these dates since the form opened: refresh and let the guest re-pick
-        roomsChanged()
-        setStep('form')
-        push(`${room?.name ?? 'This room'} was just booked for those dates — please choose other dates.`, 'error')
-        return
+      if (bookingId) {
+        // Booking already held by an earlier prompt attempt — just attach the till payment code
+        const res = await fetch('/api/mpesa/reference', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ booking_id: bookingId, code: payRef }) })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.error || 'Could not save your payment code')
+      } else {
+        const label = method === 'mpesa' ? `M-Pesa till ${MPESA_TILL}` : method === 'bank' ? 'Bank Transfer' : 'Cash on Arrival'
+        const id = await createBooking(`[PAYMENT] Method: ${label} | Total: ${KSH(total)} | Deposit paid (50%): ${method === 'cash' ? KSH(0) : KSH(deposit)} | Balance on arrival: ${method === 'cash' ? KSH(total) : KSH(balance)}${method !== 'cash' && payRef ? ` | Ref: ${payRef.trim()}` : ''}`)
+        if (!id) return
       }
-      if (!res.ok) throw new Error(data.error || 'Booking failed')
-      roomsChanged()
       setStep('success')
       push('Booking received. We will confirm shortly.', 'success')
     } catch (err) {
@@ -99,7 +158,7 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
 
   return (
     <div className="fixed inset-0 z-[80] grid place-items-center p-4">
-      <div className="absolute inset-0 bg-forest-deep/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-forest-deep/70 backdrop-blur-sm" onClick={close} />
       <div className="relative w-full max-w-2xl bg-cream rounded-3xl shadow-2xl overflow-hidden animate-fade-up max-h-[92vh] overflow-y-auto">
         <div className="bg-forest text-cream px-8 py-6 flex items-center justify-between">
           <div>
@@ -110,7 +169,7 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
               {step === 'success' && 'Booking Confirmed'}
             </div>
           </div>
-          <button onClick={onClose} className="w-10 h-10 rounded-full grid place-items-center bg-cream/10 hover:bg-cream/20"><X className="w-5 h-5" /></button>
+          <button onClick={close} className="w-10 h-10 rounded-full grid place-items-center bg-cream/10 hover:bg-cream/20"><X className="w-5 h-5" /></button>
         </div>
 
         {/* Step indicator */}
@@ -196,7 +255,9 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
                     key={id}
                     type="button"
                     onClick={() => setMethod(id)}
-                    className={`p-4 rounded-2xl border-2 transition text-left ${method === id ? 'border-forest bg-forest text-cream' : 'border-forest/10 bg-white text-forest hover:border-forest/30'}`}
+                    // Once a prompt has created the booking, finish paying it with M-Pesa
+                    disabled={!!bookingId && id !== 'mpesa'}
+                    className={`p-4 rounded-2xl border-2 transition text-left disabled:opacity-40 disabled:cursor-not-allowed ${method === id ? 'border-forest bg-forest text-cream' : 'border-forest/10 bg-white text-forest hover:border-forest/30'}`}
                   >
                     <Icon className="w-5 h-5" />
                     <div className="font-semibold text-sm mt-2">{label}</div>
@@ -207,20 +268,39 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
 
             {/* Method-specific instructions */}
             {method === 'mpesa' && (
-              <div className="p-5 rounded-2xl bg-[#4CAF50]/10 border border-[#4CAF50]/30">
-                <div className="text-xs uppercase tracking-widest text-forest font-semibold mb-3 flex items-center gap-2"><Smartphone className="w-4 h-4" /> M-Pesa Paybill</div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div><div className="text-earth text-xs">Paybill</div><div className="font-display text-2xl text-forest">247247</div></div>
-                  <div><div className="text-earth text-xs">Account No.</div><div className="font-display text-2xl text-forest">LGH-{form.phone.slice(-4) || 'XXXX'}</div></div>
-                  <div className="col-span-2"><div className="text-earth text-xs">Amount</div><div className="font-display text-2xl text-forest">{KSH(deposit)}</div></div>
+              <div className="rounded-2xl border border-[#4CAF50]/30 overflow-hidden">
+                {/* 1 — STK push: the guest just enters their PIN */}
+                <div className="p-5 bg-[#4CAF50]/10">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs uppercase tracking-widest text-forest font-semibold flex items-center gap-2"><Smartphone className="w-4 h-4" /> Pay with an M-Pesa prompt</div>
+                    <span className="px-2 py-0.5 rounded-full bg-[#2e7d32] text-white text-[10px] uppercase tracking-widest font-bold">Fastest</span>
+                  </div>
+                  <p className="text-sm text-earth mt-2">We’ll send a request for <strong className="text-forest">{KSH(deposit)}</strong> to your phone — just enter your M-Pesa PIN.</p>
+                  <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                    <input type="tel" inputMode="tel" value={mpesaPhone} onChange={e => setMpesaPhone(e.target.value)} disabled={stk.state === 'sending' || stk.state === 'waiting'} placeholder="07XX XXX XXX" aria-label="M-Pesa phone number" className="flex-1 px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none disabled:opacity-60" />
+                    <button type="button" onClick={payWithPrompt} disabled={stk.state === 'sending' || stk.state === 'waiting'} className="px-5 py-3 rounded-xl bg-[#2e7d32] text-white font-semibold hover:bg-[#256b29] transition disabled:opacity-60 flex items-center justify-center gap-2 whitespace-nowrap">
+                      {stk.state === 'sending' || stk.state === 'waiting' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Smartphone className="w-4 h-4" />}
+                      {stk.state === 'failed' ? 'Try again' : `Send prompt · ${KSH(deposit)}`}
+                    </button>
+                  </div>
+                  {stk.state === 'waiting' && <div role="status" className="mt-3 text-sm text-forest flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin shrink-0" /> Check your phone and enter your M-Pesa PIN to pay {KSH(deposit)}…</div>}
+                  {stk.state === 'failed' && <div role="alert" className="mt-3 text-sm text-clay font-medium">{stk.message}</div>}
                 </div>
-                <ol className="text-xs text-earth mt-4 space-y-1 list-decimal list-inside">
-                  <li>Go to M-Pesa → Lipa na M-Pesa → Pay Bill</li>
-                  <li>Enter Paybill and Account Number above</li>
-                  <li>Enter deposit amount and confirm with PIN</li>
-                  <li>Paste your M-Pesa confirmation code below</li>
-                </ol>
-                <input value={payRef} onChange={e => setPayRef(e.target.value.toUpperCase())} placeholder="e.g. QGH7X4K2LM" className="mt-4 w-full px-4 py-3 rounded-xl bg-white border border-forest/10 focus:border-forest outline-none font-mono" />
+                {/* 2 — Manual Buy Goods payment to the till */}
+                <div className="p-5 bg-white">
+                  <div className="text-xs uppercase tracking-widest text-earth font-semibold">Or pay manually · Buy Goods</div>
+                  <div className="grid grid-cols-2 gap-3 mt-3 text-sm">
+                    <div><div className="text-earth text-xs">Till number</div><div className="font-display text-2xl text-forest tracking-wider">{MPESA_TILL}</div></div>
+                    <div><div className="text-earth text-xs">Amount</div><div className="font-display text-2xl text-forest">{KSH(deposit)}</div></div>
+                  </div>
+                  <ol className="text-xs text-earth mt-4 space-y-1 list-decimal list-inside">
+                    <li>M-Pesa → Lipa na M-Pesa → Buy Goods and Services</li>
+                    <li>Enter till number {MPESA_TILL}</li>
+                    <li>Enter {KSH(deposit)} and your M-Pesa PIN</li>
+                    <li>Type the confirmation code from your SMS below</li>
+                  </ol>
+                  <input value={payRef} onChange={e => setPayRef(e.target.value.toUpperCase())} placeholder="M-Pesa code, e.g. QGH7X4K2LM" aria-label="M-Pesa confirmation code" className="mt-4 w-full px-4 py-3 rounded-xl bg-cream-50 border border-forest/10 focus:border-forest outline-none font-mono" />
+                </div>
               </div>
             )}
 
@@ -253,9 +333,10 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
             <div className="flex items-center gap-2 text-xs text-earth"><ShieldCheck className="w-4 h-4 text-forest" /> All payment references are securely stored with your booking.</div>
 
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setStep('form')} className="px-6 py-3 rounded-full border border-forest/20 text-forest font-semibold hover:bg-forest/5">Back</button>
-              <button onClick={submitBooking} disabled={submitting} className="px-7 py-3.5 rounded-full bg-forest text-cream font-semibold hover:bg-forest-deep transition disabled:opacity-60 flex items-center gap-2">
-                {submitting && <Loader2 className="w-4 h-4 animate-spin" />} Confirm Booking
+              {/* Once the booking is held, its details can't change from here */}
+              {!bookingId && <button onClick={() => setStep('form')} disabled={stk.state === 'sending' || stk.state === 'waiting'} className="px-6 py-3 rounded-full border border-forest/20 text-forest font-semibold hover:bg-forest/5 disabled:opacity-50">Back</button>}
+              <button onClick={submitBooking} disabled={submitting || stk.state === 'sending' || stk.state === 'waiting'} className="px-7 py-3.5 rounded-full bg-forest text-cream font-semibold hover:bg-forest-deep transition disabled:opacity-60 flex items-center gap-2">
+                {submitting && <Loader2 className="w-4 h-4 animate-spin" />} {method === 'mpesa' ? 'Confirm with code' : 'Confirm Booking'}
               </button>
             </div>
           </div>
@@ -265,12 +346,16 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
           <div className="p-10 text-center">
             <div className="w-16 h-16 rounded-full bg-forest/10 grid place-items-center mx-auto"><Check className="w-8 h-8 text-forest" /></div>
             <div className="font-display text-3xl text-forest mt-6">Karibu Sana!</div>
-            <p className="text-earth mt-3 max-w-md mx-auto">Your booking has been received. {method !== 'cash' ? `Your deposit of ${KSH(deposit)} will be verified within a few hours and we will confirm your stay.` : `Please pay ${KSH(total)} on arrival.`}</p>
+            <p className="text-earth mt-3 max-w-md mx-auto">
+              {stk.state === 'paid'
+                ? `Your deposit of ${KSH(deposit)} has been received${stk.receipt ? ` — M-Pesa receipt ${stk.receipt}` : ''}. We’ll confirm your stay shortly.`
+                : `Your booking has been received. ${method !== 'cash' ? `Your deposit of ${KSH(deposit)} will be verified within a few hours and we will confirm your stay.` : `Please pay ${KSH(total)} on arrival.`}`}
+            </p>
             <div className="mt-6 grid grid-cols-2 gap-3 max-w-sm mx-auto text-left">
               <div className="p-3 rounded-xl bg-cream-100"><div className="text-[10px] uppercase tracking-widest text-earth">Total</div><div className="font-display text-lg text-forest">{KSH(total)}</div></div>
               <div className="p-3 rounded-xl bg-cream-100"><div className="text-[10px] uppercase tracking-widest text-earth">Balance on arrival</div><div className="font-display text-lg text-forest">{method === 'cash' ? KSH(total) : KSH(balance)}</div></div>
             </div>
-            <button onClick={onClose} className="mt-8 px-8 py-3 rounded-full bg-forest text-cream font-semibold hover:bg-forest-deep">Close</button>
+            <button onClick={close} className="mt-8 px-8 py-3 rounded-full bg-forest text-cream font-semibold hover:bg-forest-deep">Close</button>
           </div>
         )}
       </div>

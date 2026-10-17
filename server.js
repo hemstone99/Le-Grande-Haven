@@ -15,6 +15,7 @@
  *   ANY  /api/bookings               → api/bookings.js     POST public, 🔒 rest
  *   ANY  /api/reservations           → api/reservations.js POST public, 🔒 rest
  *   ANY  /api/messages               → api/messages.js     POST public, 🔒 rest
+ *   ANY  /api/mpesa/:action          → api/mpesa.js        public (STK push, status, Safaricom callback)
  *   ANY  /api/staff                  → api/staff.js        🔒
  *   ANY  /api/stats                  → api/stats.js        🔒
  *   ANY  /api/upload                 → api/upload.js       🔒
@@ -109,6 +110,7 @@ await mount('/api/gallery',      'gallery.js',      ['GET'])
 await mount('/api/bookings',     'bookings.js',     ['POST'])
 await mount('/api/reservations', 'reservations.js', ['POST'])
 await mount('/api/messages',     'messages.js',     ['POST'])
+await mount('/api/mpesa/:action', 'mpesa.js',       ['GET', 'POST'])
 await mount('/api/staff',        'staff.js')
 await mount('/api/stats',        'stats.js')
 await mount('/api/upload',       'upload.js')
