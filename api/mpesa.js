@@ -8,7 +8,7 @@ import { query, queryOne, uuid } from './db.js';
  *   POST /api/mpesa/stk        { booking_id, phone }  → sends the PIN prompt
  *   GET  /api/mpesa/status?id= { status, receipt? }   → polled by the booking form
  *   POST /api/mpesa/callback   ← Safaricom posts the result here
- *   POST /api/mpesa/reference  { booking_id, code }   → manual till payment code
+ *   POST /api/mpesa/reference  { booking_id, code }   → manual Paybill payment code
  *
  * Credentials come from the environment (never commit them — the repo is public):
  *   MPESA_STK_ENABLED       false hides/blocks prompts    (default true)
@@ -16,7 +16,7 @@ import { query, queryOne, uuid } from './db.js';
  *   MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, MPESA_PASSKEY
  *   MPESA_SHORTCODE         paybill / store number used to sign the request
  *   MPESA_TRANSACTION_TYPE  CustomerPayBillOnline (default) | CustomerBuyGoodsOnline
- *   MPESA_PARTY_B           receiving number — the till for Buy Goods (default: shortcode)
+ *   MPESA_PARTY_B           receiving number — Paybill account or Buy Goods till (default: shortcode)
  *   MPESA_CALLBACK_URL      optional; defaults to https://<this host>/api/mpesa/callback
  */
 
@@ -81,7 +81,7 @@ const note = (bookingId, line) =>
   query("UPDATE bookings SET special_requests = CONCAT_WS('\\n', ?, special_requests) WHERE id = ?", [line, bookingId]);
 
 async function stk(req, res) {
-  if (!mpesaConfigured()) return res.status(503).json({ error: 'M-Pesa prompts are not available right now — please pay to the till number instead' });
+  if (!mpesaConfigured()) return res.status(503).json({ error: 'M-Pesa prompts are not available right now — please pay by Paybill instead' });
   const { booking_id, phone } = req.body || {};
   const msisdn = normalisePhone(phone);
   if (!msisdn) return res.status(400).json({ error: 'Enter a valid Safaricom number, e.g. 0712 345 678' });
@@ -93,7 +93,7 @@ async function stk(req, res) {
   }
   // Each prompt rings someone's phone — cap retries per booking
   const { n } = await queryOne('SELECT COUNT(*) AS n FROM mpesa_payments WHERE booking_id = ? AND created_at > NOW() - INTERVAL 15 MINUTE', [booking_id]);
-  if (n >= 3) return res.status(429).json({ error: 'Too many payment prompts — please wait a few minutes or pay to the till number' });
+  if (n >= 3) return res.status(429).json({ error: 'Too many payment prompts — please wait a few minutes or pay by Paybill' });
 
   const shortcode = env('MPESA_SHORTCODE');
   const callback = env('MPESA_CALLBACK_URL') || `${req.protocol}://${req.get('host')}/api/mpesa/callback`;
@@ -179,7 +179,7 @@ async function status(req, res) {
   });
 }
 
-// Guest paid to the till by hand after the booking was created (e.g. prompt failed)
+// Guest paid by Paybill after the booking was created (e.g. prompt failed)
 async function reference(req, res) {
   const { booking_id, code } = req.body || {};
   const clean = String(code || '').trim().toUpperCase();
@@ -187,7 +187,7 @@ async function reference(req, res) {
   const booking = booking_id && await queryOne('SELECT id, status FROM bookings WHERE id = ?', [booking_id]);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
   if (booking.status !== 'pending') return res.status(409).json({ error: 'This booking is no longer awaiting payment' });
-  await note(booking_id, `[PAYMENT] Paid to till manually | M-Pesa code: ${clean} (verify on statement)`);
+  await note(booking_id, `[PAYMENT] Paid by Paybill manually | M-Pesa code: ${clean} (verify on statement)`);
   return res.status(200).json({ ok: true });
 }
 
@@ -202,6 +202,6 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'Not found' });
   } catch (err) {
     console.error('[mpesa]', err);
-    if (!res.headersSent) res.status(500).json({ error: 'M-Pesa is unavailable right now — please pay to the till number instead' });
+    if (!res.headersSent) res.status(500).json({ error: 'M-Pesa is unavailable right now — please pay by Paybill instead' });
   }
 }

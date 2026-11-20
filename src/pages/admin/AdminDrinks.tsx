@@ -41,7 +41,7 @@ export default function AdminDrinks() {
 
       {loading ? <div>Loading...</div> : (
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {items.map(f => (
+          {[...items].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true })).map(f => (
             <div key={f.id} className="rounded-2xl overflow-hidden bg-white border border-forest/5 flex flex-col">
               <div className="h-36 bg-cream"><img loading="lazy" decoding="async" src={f.image_url} alt={f.name} className="w-full h-full object-cover" /></div>
               <div className="p-4 flex-1 flex flex-col">

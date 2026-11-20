@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from 'react'
 import { X, Loader2, Check, Calendar, Users, Smartphone, Landmark, Banknote, ShieldCheck } from 'lucide-react'
 import { KSH, daysBetween, guestsLabel, shortDate } from '../lib/format'
 import { findClash, firstFreeDate, roomsChanged, type BookedRange } from '../lib/roomsData'
-import { MPESA_TILL } from '../lib/contact'
+import { MPESA_PAYBILL, MPESA_PAYBILL_ACCOUNT } from '../lib/contact'
 import { useToast } from '../contexts/ToastContext'
 
 type Stk = { state: 'idle' | 'sending' | 'waiting' | 'paid' | 'failed'; message?: string; receipt?: string | null }
@@ -114,7 +114,7 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
       if (!id) { setStk({ state: 'idle' }); return }
       const res = await fetch('/api/mpesa/stk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ booking_id: id, phone: mpesaPhone }) })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) { setStk({ state: 'failed', message: data.error || 'Couldn’t send the M-Pesa prompt — please try again or pay to the till below.' }); return }
+      if (!res.ok) { setStk({ state: 'failed', message: data.error || 'Couldn’t send the M-Pesa prompt — please try again or pay by Paybill below.' }); return }
       setStk({ state: 'waiting' })
       for (let i = 0; i < 30; i++) {
         await sleep(3000)
@@ -128,7 +128,7 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
         }
         if (s?.status === 'failed') { setStk({ state: 'failed', message: s.message }); return }
       }
-      setStk({ state: 'failed', message: 'No confirmation yet. If you entered your PIN we’ll still receive it — or pay to the till below and enter the code.' })
+      setStk({ state: 'failed', message: 'No confirmation yet. If you entered your PIN we’ll still receive it — or pay by Paybill below and enter the code.' })
     } catch (err) {
       setStk({ state: 'failed', message: err instanceof Error ? err.message : 'Something went wrong — please try again.' })
     }
@@ -145,7 +145,7 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data.error || 'Could not save your payment code')
       } else {
-        const label = method === 'mpesa' ? `M-Pesa till ${MPESA_TILL}` : method === 'bank' ? 'Bank Transfer' : 'Cash on Arrival'
+        const label = method === 'mpesa' ? `M-Pesa Paybill ${MPESA_PAYBILL}` : method === 'bank' ? 'Bank Transfer' : 'Cash on Arrival'
         const id = await createBooking(`[PAYMENT] Method: ${label} | Total: ${KSH(total)} | Deposit paid (50%): ${method === 'cash' ? KSH(0) : KSH(deposit)} | Balance on arrival: ${method === 'cash' ? KSH(total) : KSH(balance)}${method !== 'cash' && payRef ? ` | Ref: ${payRef.trim()}` : ''}`)
         if (!id) return
       }
@@ -289,16 +289,18 @@ export default function BookingModal({ open, onClose, rooms, preselectedRoomId }
                   {stk.state === 'waiting' && <div role="status" className="mt-3 text-sm text-forest flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin shrink-0" /> Check your phone and enter your M-Pesa PIN to pay {KSH(deposit)}…</div>}
                   {stk.state === 'failed' && <div role="alert" className="mt-3 text-sm text-clay font-medium">{stk.message}</div>}
                 </div>}
-                {/* 2 — Manual Buy Goods payment to the till */}
+                {/* 2 — Manual Paybill payment */}
                 <div className="p-5 bg-white">
-                  <div className="text-xs uppercase tracking-widest text-earth font-semibold flex items-center gap-2">{stkEnabled ? 'Or pay manually · Buy Goods' : <><Smartphone className="w-4 h-4" /> Lipa na M-Pesa · Buy Goods</>}</div>
+                  <div className="text-xs uppercase tracking-widest text-earth font-semibold flex items-center gap-2">{stkEnabled ? 'Or pay manually · Paybill' : <><Smartphone className="w-4 h-4" /> Lipa na M-Pesa · Paybill</>}</div>
                   <div className="grid grid-cols-2 gap-3 mt-3 text-sm">
-                    <div><div className="text-earth text-xs">Till number</div><div className="font-display text-2xl text-forest tracking-wider">{MPESA_TILL}</div></div>
+                    <div><div className="text-earth text-xs">Paybill number</div><div className="font-display text-2xl text-forest tracking-wider">{MPESA_PAYBILL}</div></div>
+                    <div><div className="text-earth text-xs">Account number</div><div className="font-display text-2xl text-forest tracking-wider">{MPESA_PAYBILL_ACCOUNT}</div></div>
                     <div><div className="text-earth text-xs">Amount</div><div className="font-display text-2xl text-forest">{KSH(deposit)}</div></div>
                   </div>
                   <ol className="text-xs text-earth mt-4 space-y-1 list-decimal list-inside">
-                    <li>M-Pesa → Lipa na M-Pesa → Buy Goods and Services</li>
-                    <li>Enter till number {MPESA_TILL}</li>
+                    <li>M-Pesa → Lipa na M-Pesa → Paybill</li>
+                    <li>Enter business number {MPESA_PAYBILL}</li>
+                    <li>Enter account number {MPESA_PAYBILL_ACCOUNT}</li>
                     <li>Enter {KSH(deposit)} and your M-Pesa PIN</li>
                     <li>Type the confirmation code from your SMS below</li>
                   </ol>

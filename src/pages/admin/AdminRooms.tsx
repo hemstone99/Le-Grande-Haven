@@ -52,7 +52,7 @@ export default function AdminRooms() {
               <tr><th className="text-left px-6 py-4">Room</th><th className="text-left px-6 py-4">Type</th><th className="text-left px-6 py-4">Guests</th><th className="text-left px-6 py-4">Price</th><th className="text-left px-6 py-4">Available</th><th className="text-left px-6 py-4">Featured</th><th className="px-6"></th></tr>
             </thead>
             <tbody className="divide-y divide-forest/5">
-              {rooms.map(r => (
+              {[...rooms].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true })).map(r => (
                 <tr key={r.id} className="hover:bg-cream-50">
                   <td className="px-6 py-4"><div className="flex items-center gap-3"><img loading="lazy" decoding="async" src={r.images?.[0]?.url || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=200&q=80'} className="w-14 h-14 rounded-xl object-cover" alt="" /><div><div className="font-semibold text-forest">{r.name}</div><div className="text-xs text-earth">{r.short_description}</div></div></div></td>
                   <td className="px-6 py-4 text-sm">{r.room_type}</td>
